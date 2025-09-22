@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import WormholeViewer from "@/components/endurance/wormhole-viewer";
+import RayTracingWormhole from "@/components/endurance/ray-tracing-wormhole";
+import DebugWormhole from "@/components/endurance/debug-wormhole";
+
 
 
 // Loading Screen Component
@@ -94,7 +97,9 @@ export default function Home() {
         transition={{ duration: 1, delay: 0.2 }}
         className="absolute inset-0 pt-20"
       >
-        <WormholeViewer className="w-full h-full" />
+        {/* <RayTracingWormhole className="w-full h-full" /> */}
+        <DebugWormhole className="w-full h-full" />
+
       </motion.div>
 
       {/* Footer Info */}
@@ -104,7 +109,7 @@ export default function Home() {
         transition={{ duration: 0.8, delay: 0.5 }}
         className="absolute bottom-4 right-4 z-10 text-xs text-gray-500"
       >
-        Based on &rdquo;Visualizing Interstellar&apos;s Wormhole&ldquo; by James, von Tunzelmann, Franklin & Thorne
+        Based on &quot;Visualizing Interstellar&apos;s Wormhole&quot; by James, von Tunzelmann, Franklin & Thorne
       </motion.div>
     </main>
   );
