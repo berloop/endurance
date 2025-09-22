@@ -175,7 +175,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
 
   const createProceduralGalaxy = () => {
     const canvas = document.createElement('canvas');
-    canvas.width = 408;
+    canvas.width = 2048;
     canvas.height = 2048;
     const ctx = canvas.getContext('2d')!;
     
@@ -215,8 +215,8 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
 
   const createStarfield = () => {
     const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 512;
+    canvas.width = 2048;
+    canvas.height = 2048;
     const ctx = canvas.getContext('2d')!;
     
     ctx.fillStyle = '#000000';
@@ -511,7 +511,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
       <div ref={mountRef} className="w-full h-full" />
       
       {/* Parameter Controls */}
-      <div className="absolute top-4 left-4 bg-black/90 backdrop-blur-sm rounded-lg p-4 text-white max-w-xs">
+      <div className="absolute top-4 left-4 bg-neutral-950 backdrop-blur-sm rounded-xs p-4 text-white max-w-xs">
         <h3 className="text-lg font-semibold mb-3">Wormhole Parameters</h3>
         
         {/* Render Mode Toggle */}
@@ -522,7 +522,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
               onClick={() => setRenderMode('geometry')}
               className={`px-2 py-1 text-xs rounded ${
                 renderMode === 'geometry' 
-                  ? 'bg-blue-500 text-white' 
+                  ? 'bg-rose-500 text-white' 
                   : 'bg-gray-600 text-gray-300'
               }`}
             >
@@ -532,22 +532,13 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
               onClick={() => setRenderMode('raytraced')}
               className={`px-2 py-1 text-xs rounded ${
                 renderMode === 'raytraced' 
-                  ? 'bg-blue-500 text-white' 
+                  ? 'bg-rose-500 text-white' 
                   : 'bg-gray-600 text-gray-300'
               }`}
             >
               Ray Traced
             </button>
-            <button
-              onClick={() => setRenderMode('geodesic')}
-              className={`px-2 py-1 text-xs rounded ${
-                renderMode === 'geodesic' 
-                  ? 'bg-purple-500 text-white' 
-                  : 'bg-gray-600 text-gray-300'
-              }`}
-            >
-              Geodesic
-            </button>
+          
           </div>
         </div>
         
@@ -561,7 +552,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
               step="0.01"
               value={parameters.rho}
               onChange={(e) => setParameters(prev => ({ ...prev, rho: parseFloat(e.target.value) }))}
-              className="w-full accent-blue-500"
+              className="w-full accent-rose-500"
             />
           </div>
           
@@ -574,7 +565,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
               step="0.001"
               value={parameters.a}
               onChange={(e) => setParameters(prev => ({ ...prev, a: parseFloat(e.target.value) }))}
-              className="w-full accent-blue-500"
+              className="w-full accent-rose-500"
             />
           </div>
           
@@ -587,7 +578,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
               step="0.01"
               value={parameters.M}
               onChange={(e) => setParameters(prev => ({ ...prev, M: parseFloat(e.target.value) }))}
-              className="w-full accent-blue-500"
+              className="w-full accent-rose-500"
             />
           </div>
         </div>
@@ -599,7 +590,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
       </div>
 
       {/* Camera Controls */}
-      <div className="absolute bottom-4 left-4 bg-black/90 backdrop-blur-sm rounded-lg p-4 text-white max-w-xs">
+      <div className="absolute bottom-4 left-4 bg-neutral-950 backdrop-blur-sm rounded-xs p-4 text-white max-w-xs">
         <h3 className="text-lg font-semibold mb-3">Camera Position</h3>
         
         <div className="space-y-4">
@@ -612,7 +603,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
               step="0.1"
               value={cameraPosition.distance}
               onChange={(e) => setCameraPosition(prev => ({ ...prev, distance: parseFloat(e.target.value) }))}
-              className="w-full accent-blue-500"
+              className="w-full accent-rose-500"
             />
           </div>
           
@@ -625,7 +616,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
               step="0.01"
               value={cameraPosition.theta}
               onChange={(e) => setCameraPosition(prev => ({ ...prev, theta: parseFloat(e.target.value) }))}
-              className="w-full accent-blue-500"
+              className="w-full accent-rose-500"
             />
           </div>
           
@@ -638,14 +629,14 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
               step="0.01"
               value={cameraPosition.phi}
               onChange={(e) => setCameraPosition(prev => ({ ...prev, phi: parseFloat(e.target.value) }))}
-              className="w-full accent-blue-500"
+              className="w-full accent-rose-500"
             />
           </div>
         </div>
       </div>
 
       {/* Status Display */}
-      <div className="absolute top-4 right-4 bg-black/90 backdrop-blur-sm rounded-lg p-4 text-white">
+      <div className="absolute top-4 right-4 bg-neutral-950 backdrop-blur-sm rounded-xs p-4 text-white">
         <h3 className="text-lg font-semibold mb-2">Status</h3>
         <div className="text-sm space-y-1">
           <div className="text-green-400">✓ Texture Loaded</div>
@@ -654,7 +645,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
           {renderMode === 'geodesic' ? (
             <div className="text-purple-400">✓ Geodesic Integration</div>
           ) : renderMode === 'raytraced' ? (
-            <div className="text-blue-400">✓ Ray Tracing Active</div>
+            <div className="text-rose-400">✓ Ray Tracing Active</div>
           ) : (
             <div className="text-yellow-400">✓ Geometry Mode</div>
           )}

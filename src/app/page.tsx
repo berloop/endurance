@@ -74,7 +74,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-black">
+    <main className="min-h-screen bg-none">
       {/* Header */}
       <motion.header 
         initial={{ opacity: 0, y: -20 }}
@@ -83,7 +83,7 @@ export default function Home() {
         className="relative z-10 p-6"
       >
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-light text-white">Lazarus Station</h1>
+          <h1 className="text-2xl font-light text-white">Lazarus Station <span className="text-sm">by Egret</span></h1>
           <div className="text-sm text-gray-400">
             Interstellar Wormhole Simulation
           </div>
