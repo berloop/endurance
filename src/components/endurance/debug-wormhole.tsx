@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { geodesicFragmentShader, geodesicVertexShader } from '@/lib/geodesic-shader';
+import { rayTracingFragmentShader, rayTracingVertexShader } from '@/lib/ray-tracing-shader';
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
 
@@ -20,125 +21,21 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
   const animationIdRef = useRef<number>();
   
   const [parameters, setParameters] = useState<WormholeParameters>({
-    rho: 0.9,
-    a: 0.5,
+    rho: 0.3,
+    a: 0.001,
     M: 0.53
   });
 
   const [cameraPosition, setCameraPosition] = useState({ 
-    distance: 2.0, 
+    distance: 10.0, 
     theta: 0, 
     phi: 0 
   });
 
   const [renderMode, setRenderMode] = useState<'geometry' | 'raytraced' | 'geodesic'>('raytraced');
 
-  // Simple ray-tracing shader (original version)
-  const rayTracingVertexShader = `
-    varying vec2 vUv;
-    varying vec3 vWorldPosition;
-    
-    void main() {
-      vUv = uv;
-      vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-      vWorldPosition = worldPosition.xyz;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `;
+ 
 
-  const rayTracingFragmentShader = `
-    uniform float uRho;
-    uniform float uA;
-    uniform float uM;
-    uniform sampler2D uGalaxyTexture;
-    uniform vec3 uCameraPos;
-    uniform float uTime;
-    
-    varying vec2 vUv;
-    varying vec3 vWorldPosition;
-    
-    const float PI = 3.14159265359;
-    
-    vec2 directionToEquirectangular(vec3 dir) {
-      float theta = acos(clamp(dir.y, -1.0, 1.0));
-      float phi = atan(dir.z, dir.x);
-      phi = mod(phi + 2.0 * PI, 2.0 * PI);
-      return vec2(phi / (2.0 * PI), theta / PI);
-    }
-    
-    float getWormholeRadius(float l) {
-      float absL = abs(l);
-      if (absL <= uA) {
-        return uRho;
-      } else {
-        float x = 2.0 * (absL - uA) / (PI * uM);
-        return uRho + uM * (x * atan(x) - 0.5 * log(1.0 + x * x));
-      }
-    }
-    
-    vec3 traceRay(vec3 rayOrigin, vec3 rayDir) {
-      // Distance from ray to wormhole center axis
-      vec3 rayToCenter = -rayOrigin;
-      float rayLength = dot(rayDir, normalize(rayToCenter));
-      
-      if (rayLength > 0.0) {
-        vec3 closestPoint = rayOrigin + rayDir * rayLength;
-        float distToAxis = length(closestPoint.xy); // Distance to z-axis
-        
-        // Check if ray passes through wormhole mouth
-        if (distToAxis <= uRho) {
-          // Ray goes through wormhole - show galaxy texture
-          vec3 throughDirection = rayDir;
-          
-          // Apply gravitational lensing distortion
-          float lensStrength = uM * (1.0 - distToAxis / uRho);
-          float angle = atan(closestPoint.y, closestPoint.x);
-          
-          // Lensing distortion
-          throughDirection.x += sin(angle * 6.0 + uTime * 0.5) * lensStrength * 0.05;
-          throughDirection.y += cos(angle * 6.0 + uTime * 0.5) * lensStrength * 0.05;
-          throughDirection = normalize(throughDirection);
-          
-          vec2 uv = directionToEquirectangular(throughDirection);
-          vec3 galaxyColor = texture2D(uGalaxyTexture, uv).rgb;
-          
-          // Add subtle wormhole rim glow
-          float rimDistance = abs(distToAxis - uRho * 0.95) / (uRho * 0.05);
-          if (rimDistance < 1.0) {
-            float rimGlow = (1.0 - rimDistance) * 0.3;
-            galaxyColor += vec3(0.4, 0.6, 1.0) * rimGlow;
-          }
-          
-          return galaxyColor;
-        }
-      }
-      
-      // Ray doesn't go through wormhole - show background with slight dimming
-      vec2 bgUv = directionToEquirectangular(rayDir);
-      vec3 background = texture2D(uGalaxyTexture, bgUv).rgb * 0.4;
-      
-      // Create Einstein ring effect around wormhole
-      vec2 screenCenter = vec2(0.5, 0.5);
-      float distFromCenter = distance(vUv, screenCenter);
-      
-      // Einstein ring radius depends on camera distance and wormhole size
-      float einsteinRadius = uRho / (length(uCameraPos) * 0.3);
-      float ringWidth = einsteinRadius * 0.1;
-      
-      if (abs(distFromCenter - einsteinRadius) < ringWidth) {
-        float ringIntensity = 1.0 - abs(distFromCenter - einsteinRadius) / ringWidth;
-        background += vec3(0.3, 0.5, 1.0) * ringIntensity * 0.4;
-      }
-      
-      return background;
-    }
-    
-    void main() {
-      vec3 rayDir = normalize(vWorldPosition - uCameraPos);
-      vec3 color = traceRay(uCameraPos, rayDir);
-      gl_FragColor = vec4(color, 1.0);
-    }
-  `;
 
   const [textures, setTextures] = useState<{
     galaxy?: THREE.Texture;
