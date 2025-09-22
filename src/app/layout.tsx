@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 
 import type { Metadata } from "next";
@@ -6,6 +7,7 @@ import { Analytics } from "@vercel/analytics/next";
 import CursorWrapper from "@/components/CursorWrapper";
 import { Toaster } from 'react-hot-toast';
 import { AlertCircle, CheckCircle } from "lucide-react";
+import { Figtree } from 'next/font/google'; 
 
 export const metadata: Metadata = {
   title: "Endurance | By Egret",
@@ -33,6 +35,13 @@ export const metadata: Metadata = {
   }
 };
 
+const figtree = Figtree({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-figtree',
+});
+
+
 export default function RootLayout({
   children,
 }: {
@@ -46,10 +55,10 @@ export default function RootLayout({
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
         />
       </head>
-      <body>
-      <CursorWrapper> {/* 👈 Wrap children inside CursorWrapper */}
+      <body className={figtree.variable}>
+      {/* <CursorWrapper>  */}
         {children}
-        </CursorWrapper>
+        {/* </CursorWrapper> */}
         <Toaster 
           toastOptions={{
             success: {

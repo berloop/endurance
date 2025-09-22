@@ -2,8 +2,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { geodesicFragmentShader, geodesicVertexShader } from '@/lib/geodesic-shader';
 import { rayTracingFragmentShader, rayTracingVertexShader } from '@/lib/ray-tracing-shader';
+import { SliderRange, SliderThumb, SliderTrack } from '@radix-ui/react-slider';
+import { Activity, BoxIcon, Check, CircleDot, Cpu, Disc3Icon } from 'lucide-react';
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
+import { Slider } from '../ui/slider';
+import { Button } from '../ui/button';
 
 
 
@@ -157,7 +161,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
 
     if (renderMode === 'raytraced' && textures.galaxy) {
       // Simple ray-tracing mode
-      const rayTracerGeometry = new THREE.PlaneGeometry(100, 100);
+      const rayTracerGeometry = new THREE.PlaneGeometry(100, 100); //render as a plane.
       const rayTracerMaterial = new THREE.ShaderMaterial({
         vertexShader: rayTracingVertexShader,
         fragmentShader: rayTracingFragmentShader,
@@ -202,89 +206,120 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
       
       (geodesicTracer as any).geodesicMaterial = geodesicMaterial;
       
+    } 
+    
+  else {
+  // Geometry mode - proper embedding diagram surface
+  const group = new THREE.Group();
+  group.name = 'wormhole';
+
+  // Create the embedding surface using equation (6) from the paper
+  const segments = 128;
+  const rings = 64;
+  const maxL = parameters.a + parameters.M * 5; // Extend beyond throat
+  
+  // Custom geometry for the embedding surface
+  const embeddingGeometry = new THREE.BufferGeometry();
+  const positions = [];
+  const indices = [];
+  
+  // Generate vertices using r(ℓ) function and embedding equation
+  for (let i = 0; i <= rings; i++) {
+    const l = ((i / rings) - 0.5) * 2 * maxL; // ℓ coordinate from -maxL to +maxL
+    let r;
+    
+    // Compute r(ℓ) using your LtoR function logic
+    if (Math.abs(l) <= parameters.a) {
+      r = parameters.rho; // Inside throat
     } else {
-      // Geometry mode - show 3D wormhole structure
-      const group = new THREE.Group();
-      group.name = 'wormhole';
-
-      // Wormhole throat
-      const throatGeometry = new THREE.CylinderGeometry(
-        parameters.rho, 
-        parameters.rho, 
-        2 * parameters.a, 
-        32
-      );
-      const throatMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x444444, 
-        wireframe: true,
-        transparent: true,
-        opacity: 0.8
-      });
-      const throat = new THREE.Mesh(throatGeometry, throatMaterial);
-      throat.rotation.x = Math.PI / 2;
-      group.add(throat);
-
-      // Upper mouth (purple)
-      const upperRingGeometry = new THREE.RingGeometry(
-        parameters.rho * 0.9, 
-        parameters.rho * 1.1, 
-        64
-      );
-      const upperRingMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x6633ff, 
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.9
-      });
-      const upperRing = new THREE.Mesh(upperRingGeometry, upperRingMaterial);
-      upperRing.position.z = parameters.a;
-      group.add(upperRing);
-      
-      // Lower mouth (orange)
-      const lowerRingGeometry = new THREE.RingGeometry(
-        parameters.rho * 0.9, 
-        parameters.rho * 1.1, 
-        64
-      );
-      const lowerRingMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0xffaa33, 
-        side: THREE.DoubleSide,
-        transparent: true,
-        opacity: 0.9
-      });
-      const lowerRing = new THREE.Mesh(lowerRingGeometry, lowerRingMaterial);
-      lowerRing.position.z = -parameters.a;
-      group.add(lowerRing);
-
-      // Particles for lensing visualization
-      const particleGeometry = new THREE.BufferGeometry();
-      const particleCount = 1000;
-      const particlePositions = new Float32Array(particleCount * 3);
-      
-      for (let i = 0; i < particleCount; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = parameters.rho + Math.random() * parameters.M * 5;
-        const height = (Math.random() - 0.5) * parameters.a * 4;
-        
-        particlePositions[i * 3] = Math.cos(angle) * radius;
-        particlePositions[i * 3 + 1] = Math.sin(angle) * radius;
-        particlePositions[i * 3 + 2] = height;
-      }
-      
-      particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-      
-      const particleMaterial = new THREE.PointsMaterial({
-        color: 0xffffff,
-        size: 0.02,
-        transparent: true,
-        opacity: 0.6
-      });
-      
-      const particles = new THREE.Points(particleGeometry, particleMaterial);
-      group.add(particles);
-
-      scene.add(group);
+      const x = 2.0 * (Math.abs(l) - parameters.a) / (Math.PI * parameters.M);
+      r = parameters.rho + parameters.M * (x * Math.atan(x) - 0.5 * Math.log(1.0 + x * x));
     }
+    
+    // Create ring of vertices at this ℓ position
+    for (let j = 0; j <= segments; j++) {
+      const phi = (j / segments) * Math.PI * 2;
+      const x = r * Math.cos(phi);
+      const y = r * Math.sin(phi);
+      const z = l; // ℓ becomes z coordinate
+      
+      positions.push(x, y, z);
+    }
+  }
+  
+  // Generate quad wireframe indices instead of triangles
+
+
+// Longitudinal lines (along ℓ direction)
+for (let i = 0; i < rings; i++) {
+  for (let j = 0; j <= segments; j++) {
+    const current = i * (segments + 1) + j;
+    const next = (i + 1) * (segments + 1) + j;
+    if (i < rings - 1) {
+      indices.push(current, next);
+    }
+  }
+}
+
+// Circumferential lines (around each ring)
+for (let i = 0; i <= rings; i++) {
+  for (let j = 0; j < segments; j++) {
+    const current = i * (segments + 1) + j;
+    const next = i * (segments + 1) + (j + 1);
+    indices.push(current, next);
+  }
+}
+
+embeddingGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+embeddingGeometry.setIndex(indices);
+
+const embeddingMaterial = new THREE.LineBasicMaterial({ 
+  color: 0x444444,
+  transparent: true,
+  opacity: 0.8
+});
+
+const embeddingSurface = new THREE.LineSegments(embeddingGeometry, embeddingMaterial);
+embeddingSurface.rotation.z = Math.PI / 2;
+group.add(embeddingSurface);
+
+  // Add throat markers
+  const throatRing = new THREE.Mesh(
+    new THREE.RingGeometry(parameters.rho * 0.98, parameters.rho * 1.02, 64),
+    new THREE.MeshBasicMaterial({ color: 0xff0000, transparent: true, opacity: 0.8 })
+  );
+  group.add(throatRing);
+
+  // Keep your particles with the improved scaling
+  const particleGeometry = new THREE.BufferGeometry();
+  const particleCount = 1000;
+  const particlePositions = new Float32Array(particleCount * 3);
+  const maxRadius = Math.max(cameraPosition.distance * 1.5, parameters.a + parameters.M * 10);
+
+  for (let i = 0; i < particleCount; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = parameters.rho + Math.random() * maxRadius;
+    const height = (Math.random() - 0.5) * maxL * 2;
+    
+    particlePositions[i * 3] = Math.cos(angle) * radius;
+    particlePositions[i * 3 + 1] = Math.sin(angle) * radius;
+    particlePositions[i * 3 + 2] = height;
+  }
+  
+  particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+  
+  const particleMaterial = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: 0.05,
+    transparent: true,
+    opacity: 0.6
+  });
+  
+  const particles = new THREE.Points(particleGeometry, particleMaterial);
+  group.add(particles);
+
+  scene.add(group);
+}
   }, [parameters, textures, renderMode, rayTracingVertexShader, rayTracingFragmentShader]);
 
   // Initialize Three.js scene
@@ -412,73 +447,75 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
         <h3 className="text-lg font-semibold mb-3">Wormhole Parameters</h3>
         
         {/* Render Mode Toggle */}
-        <div className="mb-4">
-          <label className="block text-sm mb-2">Render Mode:</label>
-          <div className="flex gap-1 flex-wrap">
-            <button
-              onClick={() => setRenderMode('geometry')}
-              className={`px-2 py-1 text-xs rounded ${
-                renderMode === 'geometry' 
-                  ? 'bg-rose-500 text-white' 
-                  : 'bg-gray-600 text-gray-300'
-              }`}
-            >
-              Geometry
-            </button>
-            <button
-              onClick={() => setRenderMode('raytraced')}
-              className={`px-2 py-1 text-xs rounded ${
-                renderMode === 'raytraced' 
-                  ? 'bg-rose-500 text-white' 
-                  : 'bg-gray-600 text-gray-300'
-              }`}
-            >
-              Ray Traced
-            </button>
-          
-          </div>
-        </div>
+      <div className="mb-4">
+  <label className="block text-sm mb-2">Render Mode:</label>
+  <div className="flex gap-2 flex-wrap">
+    <Button
+      size="sm"
+      variant={renderMode === 'geometry' ? 'default' : 'secondary'}
+      onClick={() => setRenderMode('geometry')}
+    >
+      Geometry
+    </Button>
+    <Button
+      size="sm"
+      variant={renderMode === 'raytraced' ? 'default' : 'secondary'}
+      onClick={() => setRenderMode('raytraced')}
+    >
+      Ray Traced
+    </Button>
+  </div>
+</div>
         
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm mb-2">Radius (ρ): {parameters.rho.toFixed(3)}</label>
-            <input
-              type="range"
-              min="0.3"
-              max="2.0"
-              step="0.01"
-              value={parameters.rho}
-              onChange={(e) => setParameters(prev => ({ ...prev, rho: parseFloat(e.target.value) }))}
-              className="w-full accent-rose-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm mb-2">Length (2a): {(2 * parameters.a).toFixed(3)}</label>
-            <input
-              type="range"
-              min="0.001"
-              max="1.0"
-              step="0.001"
-              value={parameters.a}
-              onChange={(e) => setParameters(prev => ({ ...prev, a: parseFloat(e.target.value) }))}
-              className="w-full accent-rose-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm mb-2">Lensing (M): {parameters.M.toFixed(3)}</label>
-            <input
-              type="range"
-              min="0.01"
-              max="1.0"
-              step="0.01"
-              value={parameters.M}
-              onChange={(e) => setParameters(prev => ({ ...prev, M: parseFloat(e.target.value) }))}
-              className="w-full accent-rose-500"
-            />
-          </div>
-        </div>
+      <div className="space-y-6">
+  <div>
+    <label className="block text-sm mb-2">Radius (ρ): {parameters.rho.toFixed(3)}</label>
+    <Slider
+      value={[parameters.rho]}
+      onValueChange={(value) => setParameters(prev => ({ ...prev, rho: value[0] }))}
+      min={0.3}
+      max={2.0}
+      step={0.01}
+    >
+      <SliderTrack>
+        <SliderRange />
+      </SliderTrack>
+      <SliderThumb />
+    </Slider>
+  </div>
+
+  <div>
+    <label className="block text-sm mb-2">Length (2a): {(2 * parameters.a).toFixed(3)}</label>
+    <Slider
+      value={[parameters.a]}
+      onValueChange={(value) => setParameters(prev => ({ ...prev, a: value[0] }))}
+      min={0.001}
+      max={1.0}
+      step={0.001}
+    >
+      <SliderTrack>
+        <SliderRange />
+      </SliderTrack>
+      <SliderThumb />
+    </Slider>
+  </div>
+
+  <div>
+    <label className="block text-sm mb-2">Lensing (M): {parameters.M.toFixed(3)}</label>
+    <Slider
+      value={[parameters.M]}
+      onValueChange={(value) => setParameters(prev => ({ ...prev, M: value[0] }))}
+      min={0.01}
+      max={1.0}
+      step={0.01}
+    >
+      <SliderTrack>
+        <SliderRange />
+      </SliderTrack>
+      <SliderThumb />
+    </Slider>
+  </div>
+</div>
         
         <div className="mt-3 pt-2 border-t border-gray-600 text-xs text-gray-400">
           <div>Lensing Width: {(1.42953 * parameters.M).toFixed(3)}</div>
@@ -490,64 +527,63 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
       <div className="absolute bottom-4 left-4 bg-neutral-950 backdrop-blur-sm rounded-xs p-4 text-white max-w-xs">
         <h3 className="text-lg font-semibold mb-3">Camera Position</h3>
         
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm mb-2">Distance: {cameraPosition.distance.toFixed(2)}</label>
-            <input
-              type="range"
-              min="1.5"
-              max="10"
-              step="0.1"
-              value={cameraPosition.distance}
-              onChange={(e) => setCameraPosition(prev => ({ ...prev, distance: parseFloat(e.target.value) }))}
-              className="w-full accent-rose-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm mb-2">Theta: {(cameraPosition.theta * 180 / Math.PI).toFixed(1)}°</label>
-            <input
-              type="range"
-              min="0"
-              max={Math.PI}
-              step="0.01"
-              value={cameraPosition.theta}
-              onChange={(e) => setCameraPosition(prev => ({ ...prev, theta: parseFloat(e.target.value) }))}
-              className="w-full accent-rose-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm mb-2">Phi: {(cameraPosition.phi * 180 / Math.PI).toFixed(1)}°</label>
-            <input
-              type="range"
-              min="0"
-              max={Math.PI * 2}
-              step="0.01"
-              value={cameraPosition.phi}
-              onChange={(e) => setCameraPosition(prev => ({ ...prev, phi: parseFloat(e.target.value) }))}
-              className="w-full accent-rose-500"
-            />
-          </div>
-        </div>
+       <div className="space-y-6">
+  <div>
+    <label className="block text-sm mb-2">Distance: {cameraPosition.distance.toFixed(2)}</label>
+    <Slider
+      value={[cameraPosition.distance]}
+      onValueChange={(value) => setCameraPosition(prev => ({ ...prev, distance: value[0] }))}
+      min={1.5}
+      max={10}
+      step={0.1}
+    >
+      <SliderTrack>
+        <SliderRange />
+      </SliderTrack>
+      <SliderThumb />
+    </Slider>
+  </div>
+
+  <div>
+    <label className="block text-sm mb-2">
+      Theta: {(cameraPosition.theta * 180 / Math.PI).toFixed(1)}°
+    </label>
+    <Slider
+      value={[cameraPosition.theta]}
+      onValueChange={(value) => setCameraPosition(prev => ({ ...prev, theta: value[0] }))}
+      min={0}
+      max={Math.PI}
+      step={0.01}
+    >
+      <SliderTrack>
+        <SliderRange />
+      </SliderTrack>
+      <SliderThumb />
+    </Slider>
+  </div>
+</div>
       </div>
 
       {/* Status Display */}
-      <div className="absolute top-4 right-4 bg-neutral-950 backdrop-blur-sm rounded-xs p-4 text-white">
-        <h3 className="text-lg font-semibold mb-2">Status</h3>
-        <div className="text-sm space-y-1">
-          <div className="text-green-400">✓ Texture Loaded</div>
-          <div className="text-green-400">✓ Animation Active</div>
-          <div className="text-green-400">✓ Physics Modules</div>
-          {renderMode === 'geodesic' ? (
-            <div className="text-purple-400">✓ Geodesic Integration</div>
-          ) : renderMode === 'raytraced' ? (
-            <div className="text-rose-400">✓ Ray Tracing Active</div>
-          ) : (
-            <div className="text-yellow-400">✓ Geometry Mode</div>
-          )}
-        </div>
+     {/* Status Display */}
+<div className="absolute top-4 right-4 bg-neutral-950 backdrop-blur-sm rounded-xs p-4 text-white">
+ 
+  <div className="text-xs space-y-1">
+    {renderMode === 'geodesic' ? (
+      <div className="flex items-center text-purple-400 gap-2">
+        <BoxIcon className="w-4 h-4" /> Geodesic Integration
       </div>
+    ) : renderMode === 'raytraced' ? (
+      <div className="flex items-center text-green-400 gap-2">
+        <CircleDot className="w-2 h-2 animate-ping" /> Ray Tracing Active
+      </div>
+    ) : (
+      <div className="flex items-center text-green-400 gap-2">
+        <Disc3Icon className="w-4 h-4 animate-spin" /> Geometry Mode
+      </div>
+    )}
+  </div>
+</div>
     </div>
   );
 };
