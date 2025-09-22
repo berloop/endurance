@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { geodesicFragmentShader, geodesicVertexShader } from '@/lib/geodesic-shader';
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
+
+
 
 interface WormholeParameters {
   rho: number;    // Wormhole radius (ρ)
@@ -16,21 +19,21 @@ const DebugWormhole: React.FC<{ className?: string }> = ({ className = '' }) => 
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   const animationIdRef = useRef<number>();
   
-const [parameters, setParameters] = useState<WormholeParameters>({
-  rho: 0.9,
-  a: 0.5,    // This gives length (2a) = 1.0
-  M: 0.53
-});
+  const [parameters, setParameters] = useState<WormholeParameters>({
+    rho: 0.9,
+    a: 0.5,
+    M: 0.53
+  });
 
- const [cameraPosition, setCameraPosition] = useState({ 
-  distance: 2.0, 
-  theta: 0,    // 0° instead of 90°
-  phi: 0 
-});
+  const [cameraPosition, setCameraPosition] = useState({ 
+    distance: 2.0, 
+    theta: 0, 
+    phi: 0 
+  });
 
- const [renderMode, setRenderMode] = useState<'geometry' | 'raytraced'>('raytraced');
+  const [renderMode, setRenderMode] = useState<'geometry' | 'raytraced' | 'geodesic'>('raytraced');
 
-  // Simple ray-tracing shader
+  // Simple ray-tracing shader (original version)
   const rayTracingVertexShader = `
     varying vec2 vUv;
     varying vec3 vWorldPosition;
@@ -55,64 +58,84 @@ const [parameters, setParameters] = useState<WormholeParameters>({
     varying vec3 vWorldPosition;
     
     const float PI = 3.14159265359;
-    const float EPSILON = 1e-6;
     
-    // Convert 3D direction to equirectangular UV coordinates
     vec2 directionToEquirectangular(vec3 dir) {
       float theta = acos(clamp(dir.y, -1.0, 1.0));
       float phi = atan(dir.z, dir.x);
-      if (phi < 0.0) phi += 2.0 * PI;
+      phi = mod(phi + 2.0 * PI, 2.0 * PI);
       return vec2(phi / (2.0 * PI), theta / PI);
     }
     
-    // Simplified wormhole ray tracing
+    float getWormholeRadius(float l) {
+      float absL = abs(l);
+      if (absL <= uA) {
+        return uRho;
+      } else {
+        float x = 2.0 * (absL - uA) / (PI * uM);
+        return uRho + uM * (x * atan(x) - 0.5 * log(1.0 + x * x));
+      }
+    }
+    
     vec3 traceRay(vec3 rayOrigin, vec3 rayDir) {
-      // Distance from camera to wormhole center
-      float distToCenter = length(rayOrigin);
+      // Distance from ray to wormhole center axis
+      vec3 rayToCenter = -rayOrigin;
+      float rayLength = dot(rayDir, normalize(rayToCenter));
       
-      // Check if ray passes through wormhole
-      vec3 toCenter = -rayOrigin;
-      float projectionLength = dot(rayDir, normalize(toCenter));
-      
-      if (projectionLength > 0.0) {
-        vec3 closestPoint = rayOrigin + rayDir * projectionLength;
-        float distToAxis = length(closestPoint);
+      if (rayLength > 0.0) {
+        vec3 closestPoint = rayOrigin + rayDir * rayLength;
+        float distToAxis = length(closestPoint.xy); // Distance to z-axis
         
-        // If ray passes through wormhole mouth
-        if (distToAxis < uRho * 1.2) {
-          // Ray goes through wormhole - sample galaxy texture
+        // Check if ray passes through wormhole mouth
+        if (distToAxis <= uRho) {
+          // Ray goes through wormhole - show galaxy texture
           vec3 throughDirection = rayDir;
           
-          // Apply simple gravitational lensing distortion
-          float lensStrength = uM * (1.0 - distToAxis / (uRho * 1.2));
-          float angle = atan(closestPoint.z, closestPoint.x);
-          throughDirection.x += sin(angle * 4.0 + uTime) * lensStrength * 0.1;
-          throughDirection.z += cos(angle * 4.0 + uTime) * lensStrength * 0.1;
+          // Apply gravitational lensing distortion
+          float lensStrength = uM * (1.0 - distToAxis / uRho);
+          float angle = atan(closestPoint.y, closestPoint.x);
+          
+          // Lensing distortion
+          throughDirection.x += sin(angle * 6.0 + uTime * 0.5) * lensStrength * 0.05;
+          throughDirection.y += cos(angle * 6.0 + uTime * 0.5) * lensStrength * 0.05;
           throughDirection = normalize(throughDirection);
           
           vec2 uv = directionToEquirectangular(throughDirection);
           vec3 galaxyColor = texture2D(uGalaxyTexture, uv).rgb;
           
-          // Add wormhole glow effect
-          float glowFactor = 1.0 - (distToAxis / (uRho * 1.2));
-          galaxyColor += vec3(0.2, 0.4, 1.0) * glowFactor * 0.3;
+          // Add subtle wormhole rim glow
+          float rimDistance = abs(distToAxis - uRho * 0.95) / (uRho * 0.05);
+          if (rimDistance < 1.0) {
+            float rimGlow = (1.0 - rimDistance) * 0.3;
+            galaxyColor += vec3(0.4, 0.6, 1.0) * rimGlow;
+          }
           
           return galaxyColor;
         }
       }
       
-      // Ray doesn't go through wormhole - sample background
+      // Ray doesn't go through wormhole - show background with slight dimming
       vec2 bgUv = directionToEquirectangular(rayDir);
-      return texture2D(uGalaxyTexture, bgUv).rgb * 0.3; // Dimmed background
+      vec3 background = texture2D(uGalaxyTexture, bgUv).rgb * 0.4;
+      
+      // Create Einstein ring effect around wormhole
+      vec2 screenCenter = vec2(0.5, 0.5);
+      float distFromCenter = distance(vUv, screenCenter);
+      
+      // Einstein ring radius depends on camera distance and wormhole size
+      float einsteinRadius = uRho / (length(uCameraPos) * 0.3);
+      float ringWidth = einsteinRadius * 0.1;
+      
+      if (abs(distFromCenter - einsteinRadius) < ringWidth) {
+        float ringIntensity = 1.0 - abs(distFromCenter - einsteinRadius) / ringWidth;
+        background += vec3(0.3, 0.5, 1.0) * ringIntensity * 0.4;
+      }
+      
+      return background;
     }
     
     void main() {
-      // Calculate ray direction from camera to this pixel
       vec3 rayDir = normalize(vWorldPosition - uCameraPos);
-      
-      // Trace ray through wormhole
       vec3 color = traceRay(uCameraPos, rayDir);
-      
       gl_FragColor = vec4(color, 1.0);
     }
   `;
@@ -126,94 +149,92 @@ const [parameters, setParameters] = useState<WormholeParameters>({
   useEffect(() => {
     const loader = new THREE.TextureLoader();
     
-    // Try to load your single texture first
+    // Try to load galaxy texture
     loader.load('/galaxy.jpg', 
       (texture) => {
-        // Preserve texture quality
         texture.generateMipmaps = false;
         texture.minFilter = THREE.LinearFilter;
         texture.magFilter = THREE.LinearFilter;
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.ClampToEdgeWrapping;
-        texture.flipY = false; // Important for equirectangular textures
+        texture.flipY = false;
         setTextures(prev => ({ ...prev, galaxy: texture }));
       },
       undefined,
       (error) => {
         console.log('Galaxy texture not found, using fallback');
-        // Create proper black space with nebula
-        const canvas = document.createElement('canvas');
-        canvas.width = 1024;
-        canvas.height = 512;
-        const ctx = canvas.getContext('2d')!;
-        
-        // BLACK space background
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, 1024, 512);
-        
-        // Add colorful nebula patches
-        for (let i = 0; i < 30; i++) {
-          const x = Math.random() * 1024;
-          const y = Math.random() * 512;
-          const size = Math.random() * 150 + 50;
-          const opacity = Math.random() * 0.4 + 0.1;
-          
-          const colors = ['#FF6B9D', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57'];
-          const color = colors[Math.floor(Math.random() * colors.length)];
-          
-          const nebulaGradient = ctx.createRadialGradient(x, y, 0, x, y, size);
-          nebulaGradient.addColorStop(0, color + Math.floor(opacity * 255).toString(16).padStart(2, '0'));
-          nebulaGradient.addColorStop(1, 'transparent');
-          
-          ctx.fillStyle = nebulaGradient;
-          ctx.fillRect(x - size, y - size, size * 2, size * 2);
-        }
-        
-        // Add white stars
-        ctx.fillStyle = '#FFFFFF';
-        for (let i = 0; i < 2000; i++) {
-          const x = Math.random() * 1024;
-          const y = Math.random() * 512;
-          const brightness = Math.random();
-          const size = brightness * 2;
-          ctx.globalAlpha = brightness;
-          ctx.fillRect(x, y, size, size);
-        }
-        ctx.globalAlpha = 1;
-        
-        const fallbackTexture = new THREE.CanvasTexture(canvas);
+        const fallbackTexture = createProceduralGalaxy();
         setTextures(prev => ({ ...prev, galaxy: fallbackTexture }));
       }
     );
 
-    // Create simple black starfield for Saturn side
-    const createStarfield = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = 1024;
-      canvas.height = 512;
-      const ctx = canvas.getContext('2d')!;
-      
-      // BLACK space background
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, 1024, 512);
-      
-      // Add white stars only
-      ctx.fillStyle = '#FFFFFF';
-      for (let i = 0; i < 1500; i++) {
-        const x = Math.random() * 1024;
-        const y = Math.random() * 512;
-        const brightness = Math.random();
-        const size = brightness * 1.5;
-        ctx.globalAlpha = brightness;
-        ctx.fillRect(x, y, size, size);
-      }
-      ctx.globalAlpha = 1;
-      
-      return new THREE.CanvasTexture(canvas);
-    };
-
-    setTextures(prev => ({ ...prev, saturn: createStarfield() }));
+    // Create Saturn-side starfield
+    const saturnTexture = createStarfield();
+    setTextures(prev => ({ ...prev, saturn: saturnTexture }));
   }, []);
+
+  const createProceduralGalaxy = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 408;
+    canvas.height = 2048;
+    const ctx = canvas.getContext('2d')!;
+    
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, 2048, 2048);
+    
+    for (let i = 0; i < 30; i++) {
+      const x = Math.random() * 1024;
+      const y = Math.random() * 512;
+      const size = Math.random() * 150 + 50;
+      const opacity = Math.random() * 0.4 + 0.1;
+      
+      const colors = ['#FF6B9D', '#4ECDC4', '#45B7D1', '#96CEB4', '#FECA57'];
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      
+      const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+      gradient.addColorStop(0, color + Math.floor(opacity * 255).toString(16).padStart(2, '0'));
+      gradient.addColorStop(1, 'transparent');
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(x - size, y - size, size * 2, size * 2);
+    }
+    
+    ctx.fillStyle = '#FFFFFF';
+    for (let i = 0; i < 2000; i++) {
+      const x = Math.random() * 1024;
+      const y = Math.random() * 512;
+      const brightness = Math.random();
+      const size = brightness * 2;
+      ctx.globalAlpha = brightness;
+      ctx.fillRect(x, y, size, size);
+    }
+    ctx.globalAlpha = 1;
+    
+    return new THREE.CanvasTexture(canvas);
+  };
+
+  const createStarfield = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 512;
+    const ctx = canvas.getContext('2d')!;
+    
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, 1024, 512);
+    
+    ctx.fillStyle = '#FFFFFF';
+    for (let i = 0; i < 1500; i++) {
+      const x = Math.random() * 1024;
+      const y = Math.random() * 512;
+      const brightness = Math.random();
+      const size = brightness * 1.5;
+      ctx.globalAlpha = brightness;
+      ctx.fillRect(x, y, size, size);
+    }
+    ctx.globalAlpha = 1;
+    
+    return new THREE.CanvasTexture(canvas);
+  };
 
   const updateCameraPosition = useCallback(() => {
     if (!cameraRef.current) return;
@@ -228,19 +249,17 @@ const [parameters, setParameters] = useState<WormholeParameters>({
   }, [cameraPosition]);
 
   const createWormholeGeometry = useCallback((scene: THREE.Scene) => {
-    // Remove existing wormhole and spheres
+    // Remove existing objects
     const existingWormhole = scene.getObjectByName('wormhole');
-    const existingGalaxy = scene.getObjectByName('galaxySphere');
-    const existingSaturn = scene.getObjectByName('saturnSphere');
     const existingRayTracer = scene.getObjectByName('rayTracer');
+    const existingGeodesicTracer = scene.getObjectByName('geodesicTracer');
     
     if (existingWormhole) scene.remove(existingWormhole);
-    if (existingGalaxy) scene.remove(existingGalaxy);
-    if (existingSaturn) scene.remove(existingSaturn);
     if (existingRayTracer) scene.remove(existingRayTracer);
+    if (existingGeodesicTracer) scene.remove(existingGeodesicTracer);
 
     if (renderMode === 'raytraced' && textures.galaxy) {
-      // Create ray-tracing plane
+      // Simple ray-tracing mode
       const rayTracerGeometry = new THREE.PlaneGeometry(100, 100);
       const rayTracerMaterial = new THREE.ShaderMaterial({
         vertexShader: rayTracingVertexShader,
@@ -260,16 +279,38 @@ const [parameters, setParameters] = useState<WormholeParameters>({
       rayTracer.name = 'rayTracer';
       scene.add(rayTracer);
       
-      // Store material reference for animation
       (rayTracer as any).rayTracerMaterial = rayTracerMaterial;
       
-    } else {
-     
+    } else if (renderMode === 'geodesic' && textures.galaxy && textures.saturn) {
+      // Geodesic ray-tracing mode using imported shaders
+      const geodesicGeometry = new THREE.PlaneGeometry(200, 200);
+      const geodesicMaterial = new THREE.ShaderMaterial({
+        vertexShader: geodesicVertexShader,
+        fragmentShader: geodesicFragmentShader,
+        uniforms: {
+          uRho: { value: parameters.rho },
+          uA: { value: parameters.a },
+          uM: { value: parameters.M },
+          uGalaxyTexture: { value: textures.galaxy },
+          uSaturnTexture: { value: textures.saturn },
+          uCameraPos: { value: new THREE.Vector3() },
+          uTime: { value: 0 }
+        },
+        side: THREE.DoubleSide
+      });
 
-      // Create wormhole geometry
+      const geodesicTracer = new THREE.Mesh(geodesicGeometry, geodesicMaterial);
+      geodesicTracer.name = 'geodesicTracer';
+      scene.add(geodesicTracer);
+      
+      (geodesicTracer as any).geodesicMaterial = geodesicMaterial;
+      
+    } else {
+      // Geometry mode - show 3D wormhole structure
       const group = new THREE.Group();
       group.name = 'wormhole';
 
+      // Wormhole throat
       const throatGeometry = new THREE.CylinderGeometry(
         parameters.rho, 
         parameters.rho, 
@@ -286,7 +327,7 @@ const [parameters, setParameters] = useState<WormholeParameters>({
       throat.rotation.x = Math.PI / 2;
       group.add(throat);
 
-      // Wormhole mouths
+      // Upper mouth (purple)
       const upperRingGeometry = new THREE.RingGeometry(
         parameters.rho * 0.9, 
         parameters.rho * 1.1, 
@@ -302,6 +343,7 @@ const [parameters, setParameters] = useState<WormholeParameters>({
       upperRing.position.z = parameters.a;
       group.add(upperRing);
       
+      // Lower mouth (orange)
       const lowerRingGeometry = new THREE.RingGeometry(
         parameters.rho * 0.9, 
         parameters.rho * 1.1, 
@@ -317,7 +359,7 @@ const [parameters, setParameters] = useState<WormholeParameters>({
       lowerRing.position.z = -parameters.a;
       group.add(lowerRing);
 
-      // Add particles
+      // Particles for lensing visualization
       const particleGeometry = new THREE.BufferGeometry();
       const particleCount = 1000;
       const particlePositions = new Float32Array(particleCount * 3);
@@ -352,12 +394,10 @@ const [parameters, setParameters] = useState<WormholeParameters>({
   useEffect(() => {
     if (!mountRef.current) return;
 
-    // Scene setup
     const scene = new THREE.Scene();
-   scene.background = new THREE.Color(0x000000);
+    scene.background = new THREE.Color(0x000000);
     sceneRef.current = scene;
 
-    // Camera setup
     const camera = new THREE.PerspectiveCamera(
       75,
       mountRef.current.clientWidth / mountRef.current.clientHeight,
@@ -366,7 +406,6 @@ const [parameters, setParameters] = useState<WormholeParameters>({
     );
     cameraRef.current = camera;
 
-    // Renderer setup
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -394,7 +433,6 @@ const [parameters, setParameters] = useState<WormholeParameters>({
     const stars = new THREE.Points(starGeometry, starMaterial);
     scene.add(stars);
 
-    // Create wormhole
     createWormholeGeometry(scene);
     updateCameraPosition();
 
@@ -417,13 +455,22 @@ const [parameters, setParameters] = useState<WormholeParameters>({
           material.uniforms.uA.value = parameters.a;
           material.uniforms.uM.value = parameters.M;
         }
+      } else if (renderMode === 'geodesic') {
+        const geodesicTracer = scene.getObjectByName('geodesicTracer');
+        if (geodesicTracer && (geodesicTracer as any).geodesicMaterial && cameraRef.current) {
+          const material = (geodesicTracer as any).geodesicMaterial;
+          material.uniforms.uTime.value += 0.01;
+          material.uniforms.uCameraPos.value.copy(cameraRef.current.position);
+          material.uniforms.uRho.value = parameters.rho;
+          material.uniforms.uA.value = parameters.a;
+          material.uniforms.uM.value = parameters.M;
+        }
       }
       
       renderer.render(scene, camera);
     };
     animate();
 
-    // Handle resize
     const handleResize = () => {
       if (!mountRef.current || !camera || !renderer) return;
       
@@ -449,14 +496,12 @@ const [parameters, setParameters] = useState<WormholeParameters>({
     };
   }, [createWormholeGeometry, updateCameraPosition]);
 
-  // Update wormhole when parameters change
   useEffect(() => {
     if (sceneRef.current) {
       createWormholeGeometry(sceneRef.current);
     }
   }, [createWormholeGeometry]);
 
-  // Update camera when position changes
   useEffect(() => {
     updateCameraPosition();
   }, [updateCameraPosition]);
@@ -472,10 +517,10 @@ const [parameters, setParameters] = useState<WormholeParameters>({
         {/* Render Mode Toggle */}
         <div className="mb-4">
           <label className="block text-sm mb-2">Render Mode:</label>
-          <div className="flex gap-2">
+          <div className="flex gap-1 flex-wrap">
             <button
               onClick={() => setRenderMode('geometry')}
-              className={`px-3 py-1 text-xs rounded ${
+              className={`px-2 py-1 text-xs rounded ${
                 renderMode === 'geometry' 
                   ? 'bg-blue-500 text-white' 
                   : 'bg-gray-600 text-gray-300'
@@ -485,13 +530,23 @@ const [parameters, setParameters] = useState<WormholeParameters>({
             </button>
             <button
               onClick={() => setRenderMode('raytraced')}
-              className={`px-3 py-1 text-xs rounded ${
+              className={`px-2 py-1 text-xs rounded ${
                 renderMode === 'raytraced' 
                   ? 'bg-blue-500 text-white' 
                   : 'bg-gray-600 text-gray-300'
               }`}
             >
               Ray Traced
+            </button>
+            <button
+              onClick={() => setRenderMode('geodesic')}
+              className={`px-2 py-1 text-xs rounded ${
+                renderMode === 'geodesic' 
+                  ? 'bg-purple-500 text-white' 
+                  : 'bg-gray-600 text-gray-300'
+              }`}
+            >
+              Geodesic
             </button>
           </div>
         </div>
@@ -501,9 +556,9 @@ const [parameters, setParameters] = useState<WormholeParameters>({
             <label className="block text-sm mb-2">Radius (ρ): {parameters.rho.toFixed(3)}</label>
             <input
               type="range"
-              min="0.5"
-              max="3.0"
-              step="0.1"
+              min="0.3"
+              max="2.0"
+              step="0.01"
               value={parameters.rho}
               onChange={(e) => setParameters(prev => ({ ...prev, rho: parseFloat(e.target.value) }))}
               className="w-full accent-blue-500"
@@ -514,9 +569,9 @@ const [parameters, setParameters] = useState<WormholeParameters>({
             <label className="block text-sm mb-2">Length (2a): {(2 * parameters.a).toFixed(3)}</label>
             <input
               type="range"
-              min="0.1"
-              max="2.0"
-              step="0.1"
+              min="0.001"
+              max="1.0"
+              step="0.001"
               value={parameters.a}
               onChange={(e) => setParameters(prev => ({ ...prev, a: parseFloat(e.target.value) }))}
               className="w-full accent-blue-500"
@@ -536,6 +591,11 @@ const [parameters, setParameters] = useState<WormholeParameters>({
             />
           </div>
         </div>
+        
+        <div className="mt-3 pt-2 border-t border-gray-600 text-xs text-gray-400">
+          <div>Lensing Width: {(1.42953 * parameters.M).toFixed(3)}</div>
+          <div>Throat Area: {(4 * Math.PI * parameters.rho * parameters.rho).toFixed(2)}</div>
+        </div>
       </div>
 
       {/* Camera Controls */}
@@ -547,8 +607,8 @@ const [parameters, setParameters] = useState<WormholeParameters>({
             <label className="block text-sm mb-2">Distance: {cameraPosition.distance.toFixed(2)}</label>
             <input
               type="range"
-              min="2"
-              max="20"
+              min="1.5"
+              max="10"
               step="0.1"
               value={cameraPosition.distance}
               onChange={(e) => setCameraPosition(prev => ({ ...prev, distance: parseFloat(e.target.value) }))}
@@ -588,13 +648,15 @@ const [parameters, setParameters] = useState<WormholeParameters>({
       <div className="absolute top-4 right-4 bg-black/90 backdrop-blur-sm rounded-lg p-4 text-white">
         <h3 className="text-lg font-semibold mb-2">Status</h3>
         <div className="text-sm space-y-1">
-          <div className="text-green-400">✓ High-Res Texture Loaded</div>
+          <div className="text-green-400">✓ Texture Loaded</div>
           <div className="text-green-400">✓ Animation Active</div>
-          <div className="text-green-400">✓ Equirectangular Mapping</div>
-          {renderMode === 'raytraced' ? (
-            <div className="text-green-400">✓ Ray Tracing Active</div>
+          <div className="text-green-400">✓ Physics Modules</div>
+          {renderMode === 'geodesic' ? (
+            <div className="text-purple-400">✓ Geodesic Integration</div>
+          ) : renderMode === 'raytraced' ? (
+            <div className="text-blue-400">✓ Ray Tracing Active</div>
           ) : (
-            <div className="text-yellow-400">⚠ Ray Tracing Disabled</div>
+            <div className="text-yellow-400">✓ Geometry Mode</div>
           )}
         </div>
       </div>
