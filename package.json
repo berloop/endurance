@@ -1,0 +1,49 @@
+{
+  "name": "break-me",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@humeai/voice-react": "^0.1.20",
+    "@prisma/client": "^6.5.0",
+    "@radix-ui/react-select": "^2.1.6",
+    "@types/three": "^0.174.0",
+    "@vercel/analytics": "^1.5.0",
+    "animate.css": "^4.1.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "deps": "^1.0.0",
+    "framer-motion": "^12.5.0",
+    "hume": "^0.9.12",
+    "lucide-react": "^0.479.0",
+    "next": "14.2.24",
+    "prisma": "^6.5.0",
+    "react": "^18",
+    "react-audio-visualize": "^1.2.0",
+    "react-colorful": "^5.6.1",
+    "react-cursor-custom": "^1.2.4",
+    "react-dom": "^18",
+    "react-hot-toast": "^2.5.2",
+    "styled-components": "^6.1.15",
+    "tailwind-merge": "^3.0.2",
+    "tailwind-scrollbar": "^4.0.1",
+    "tailwindcss-animate": "^1.0.7",
+    "three": "^0.174.0",
+    "wavesurfer.js": "^7.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.24",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}

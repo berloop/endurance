@@ -1,0 +1,17 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model ShareConfiguration {
+  id        String   @id @default(cuid())
+  shareId   String   @unique
+  config    Json
+  createdAt DateTime @default(now())
+  
+  @@index([shareId])
+}
