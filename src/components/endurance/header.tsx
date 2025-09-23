@@ -28,7 +28,7 @@ const Header = () => {
         {/* Logo/Brand */}
         <Link href="/" className="flex items-center">
           <h1 className="text-xl md:text-2xl font-light text-white hover:text-gray-300 transition-colors">
-            Project Lazarus <span className="text-xs md:text-sm text-neutral-400">by Egret</span>
+            Project Lazarus <span className="text-xs md:text-sm text-neutral-400">by Egret </span>
           </h1>
         </Link>
 

@@ -19,6 +19,7 @@ import {
   ChevronDown,
   ChevronUp,
   Settings,
+  Settings2Icon,
 } from "lucide-react";
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import * as THREE from "three";
@@ -116,7 +117,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
     );
     // Load outside texture (outside wormhole)...
     loader.load(
-      "/galaxy_03.jpg",
+      "/galaxy_05.jpg",
       (texture) => {
         texture.generateMipmaps = false;
         texture.minFilter = THREE.LinearFilter;
@@ -245,6 +246,8 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
             uOutsideTexture: { value: textures.outside },
             uCameraPos: { value: new THREE.Vector3() },
             uTime: { value: 0 },
+            uAnimationPaused: { value: advancedParams.animationPaused },
+uPausedTime: { value: 0 },
             // Advanced parameters
             uRotationSpeed: { value: advancedParams.rotationSpeed },
             uWarpingDistance: { value: advancedParams.warpingDistance },
@@ -519,8 +522,10 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
 
           // Only update time if not paused
           if (!advancedParams.animationPaused) {
-            material.uniforms.uTime.value += 0.02;
-          }
+  material.uniforms.uTime.value += 0.02;
+  material.uniforms.uPausedTime.value = material.uniforms.uTime.value;
+}
+material.uniforms.uAnimationPaused.value = advancedParams.animationPaused;
           material.uniforms.uCameraPos.value.copy(cameraRef.current.position);
           material.uniforms.uRho.value = parameters.rho;
           material.uniforms.uA.value = parameters.a;
@@ -628,65 +633,71 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
         </div>
 
         <div className="space-y-6">
-          <div>
-            <label className="block text-sm mb-2">
-              Radius (ρ): {parameters.rho.toFixed(3)}
-            </label>
-            <Slider
-              value={[parameters.rho]}
-              onValueChange={(value) =>
-                setParameters((prev) => ({ ...prev, rho: value[0] }))
-              }
-              min={0.3}
-              max={2.0}
-              step={0.01}
-            >
-              <SliderTrack>
-                <SliderRange />
-              </SliderTrack>
-              <SliderThumb />
-            </Slider>
-          </div>
+         <div>
+  <label className="block text-sm mb-2 flex justify-between">
+    <span>Radius (ρ):</span>
+    <span className="font-mono">{parameters.rho.toFixed(3)}</span>
+  </label>
+  <Slider
+    value={[parameters.rho]}
+    onValueChange={(value) =>
+      setParameters((prev) => ({ ...prev, rho: value[0] }))
+    }
+    min={0.3}
+    max={2.0}
+    step={0.01}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
 
-          <div>
-            <label className="block text-sm mb-2">
-              Length (2a): {(2 * parameters.a).toFixed(3)}
-            </label>
-            <Slider
-              value={[parameters.a]}
-              onValueChange={(value) =>
-                setParameters((prev) => ({ ...prev, a: value[0] }))
-              }
-              min={0.001}
-              max={1.0}
-              step={0.001}
-            >
-              <SliderTrack>
-                <SliderRange />
-              </SliderTrack>
-              <SliderThumb />
-            </Slider>
-          </div>
 
-          <div>
-            <label className="block text-sm mb-2">
-              Lensing (M): {parameters.M.toFixed(3)}
-            </label>
-            <Slider
-              value={[parameters.M]}
-              onValueChange={(value) =>
-                setParameters((prev) => ({ ...prev, M: value[0] }))
-              }
-              min={0.01}
-              max={1.0}
-              step={0.01}
-            >
-              <SliderTrack>
-                <SliderRange />
-              </SliderTrack>
-              <SliderThumb />
-            </Slider>
-          </div>
+         <div>
+  <label className="block text-sm mb-2 flex justify-between">
+    <span>Length (2a):</span>
+    <span className="font-mono">{(2 * parameters.a).toFixed(3)}</span>
+  </label>
+  <Slider
+    value={[parameters.a]}
+    onValueChange={(value) =>
+      setParameters((prev) => ({ ...prev, a: value[0] }))
+    }
+    min={0.001}
+    max={1.0}
+    step={0.001}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
+
+
+         <div>
+  <label className="block text-sm mb-2 flex justify-between">
+    <span>Lensing (M):</span>
+    <span className="font-mono">{parameters.M.toFixed(3)}</span>
+  </label>
+  <Slider
+    value={[parameters.M]}
+    onValueChange={(value) =>
+      setParameters((prev) => ({ ...prev, M: value[0] }))
+    }
+    min={0.01}
+    max={1.0}
+    step={0.01}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
+
 
           {/* Camera Controls */}
           <div className="pt-4 border-t border-gray-600">
@@ -696,61 +707,67 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm mb-2">
-                  Distance: {cameraPosition.distance.toFixed(2)}
-                </label>
-                <Slider
-                  value={[cameraPosition.distance]}
-                  onValueChange={(value) =>
-                    setCameraPosition((prev) => ({
-                      ...prev,
-                      distance: value[0],
-                    }))
-                  }
-                  min={1.5}
-                  max={10}
-                  step={0.1}
-                >
-                  <SliderTrack>
-                    <SliderRange />
-                  </SliderTrack>
-                  <SliderThumb />
-                </Slider>
-              </div>
+  <label className="block text-sm mb-2 flex justify-between">
+    <span>Distance:</span>
+    <span className="font-mono">{cameraPosition.distance.toFixed(2)}</span>
+  </label>
+  <Slider
+    value={[cameraPosition.distance]}
+    onValueChange={(value) =>
+      setCameraPosition((prev) => ({
+        ...prev,
+        distance: value[0],
+      }))
+    }
+    min={1.5}
+    max={10}
+    step={0.1}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
 
-              <div>
-                <label className="block text-sm mb-2">
-                  Theta: {((cameraPosition.theta * 180) / Math.PI).toFixed(1)}°
-                </label>
-                <Slider
-                  value={[cameraPosition.theta]}
-                  onValueChange={(value) =>
-                    setCameraPosition((prev) => ({ ...prev, theta: value[0] }))
-                  }
-                  min={0}
-                  max={Math.PI}
-                  step={0.01}
-                >
-                  <SliderTrack>
-                    <SliderRange />
-                  </SliderTrack>
-                  <SliderThumb />
-                </Slider>
-              </div>
+
+             <div>
+  <label className="block text-sm mb-2 flex justify-between">
+    <span>Theta:</span>
+    <span className="font-mono">
+      {((cameraPosition.theta * 180) / Math.PI).toFixed(1)}°
+    </span>
+  </label>
+  <Slider
+    value={[cameraPosition.theta]}
+    onValueChange={(value) =>
+      setCameraPosition((prev) => ({ ...prev, theta: value[0] }))
+    }
+    min={0}
+    max={Math.PI}
+    step={0.01}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
+
             </div>
           </div>
         </div>
 
         {/* Advanced Toggle */}
-        <div className="mt-4 pt-4 border-t border-gray-600">
+        <div className="mt-4 pt-4 border-t border-neutral-600">
           <Button
             size="sm"
-            variant="ghost"
+            variant="cooper"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="w-full justify-between text-gray-300 hover:text-white"
+            className="w-full justify-between text-neutral-300 hover:text-white"
           >
             <div className="flex items-center gap-2">
-              <Settings className="w-4 h-4" />
+              <Settings2Icon className="w-4 h-4 rotate-90" />
               Advanced Parameters
             </div>
             {showAdvanced ? (
@@ -763,52 +780,56 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
 
         {/* Advanced Parameters */}
         {showAdvanced && (
-          <div className="mt-4 space-y-6 border-t border-gray-600 pt-4">
+          <div className="mt-4 space-y-6 border-t border-neutral-600 pt-4">
             <div>
-              <label className="block text-sm mb-2">
-                Rotation Speed: {advancedParams.rotationSpeed.toFixed(2)}
-              </label>
-              <Slider
-                value={[advancedParams.rotationSpeed]}
-                onValueChange={(value) =>
-                  setAdvancedParams((prev) => ({
-                    ...prev,
-                    rotationSpeed: value[0],
-                  }))
-                }
-                min={0}
-                max={1.0}
-                step={0.01}
-              >
-                <SliderTrack>
-                  <SliderRange />
-                </SliderTrack>
-                <SliderThumb />
-              </Slider>
-            </div>
+  <label className="block text-sm mb-2 flex justify-between">
+    <span>Rotation Speed:</span>
+    <span className="font-mono">{advancedParams.rotationSpeed.toFixed(2)}</span>
+  </label>
+  <Slider
+    value={[advancedParams.rotationSpeed]}
+    onValueChange={(value) =>
+      setAdvancedParams((prev) => ({
+        ...prev,
+        rotationSpeed: value[0],
+      }))
+    }
+    min={0}
+    max={1.0}
+    step={0.01}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
+
 
             <div>
-              <label className="block text-sm mb-2">
-                Warping Distance: {advancedParams.warpingDistance.toFixed(1)}
-              </label>
-              <Slider
-                value={[advancedParams.warpingDistance]}
-                onValueChange={(value) =>
-                  setAdvancedParams((prev) => ({
-                    ...prev,
-                    warpingDistance: value[0],
-                  }))
-                }
-                min={0.1}
-                max={5.0}
-                step={0.1}
-              >
-                <SliderTrack>
-                  <SliderRange />
-                </SliderTrack>
-                <SliderThumb />
-              </Slider>
-            </div>
+  <label className="block text-sm mb-2 flex justify-between">
+    <span>Warping Distance:</span>
+    <span className="font-mono">{advancedParams.warpingDistance.toFixed(1)}</span>
+  </label>
+  <Slider
+    value={[advancedParams.warpingDistance]}
+    onValueChange={(value) =>
+      setAdvancedParams((prev) => ({
+        ...prev,
+        warpingDistance: value[0],
+      }))
+    }
+    min={0.1}
+    max={5.0}
+    step={0.1}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
+
             <div>
               <label className="block text-sm mb-2">Rotation Mode</label>
               <div className="grid grid-cols-2 gap-2">
@@ -859,228 +880,249 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
               </div>
             </div>
             <div>
-  <label className="block text-sm mb-2">Animation Control</label>
+  <label className="block text-sm mb-2">Time Control</label>
   <Button
     size="sm"
     variant={advancedParams.animationPaused ? 'secondary' : 'default'}
     onClick={() => setAdvancedParams(prev => ({ ...prev, animationPaused: !prev.animationPaused }))}
     className="w-full"
   >
-    {advancedParams.animationPaused ? 'Resume Animation' : 'Pause Animation'}
+    {advancedParams.animationPaused ? 'Start Time' : 'Stop Time'}
   </Button>
 </div>
             <div>
-              <label className="block text-sm mb-2">
-                Wormhole Radius: {advancedParams.wormholeRadius.toFixed(2)}
-              </label>
-              <Slider
-                value={[advancedParams.wormholeRadius]}
-                onValueChange={(value) =>
-                  setAdvancedParams((prev) => ({
-                    ...prev,
-                    wormholeRadius: value[0],
-                  }))
-                }
-                min={0.1}
-                max={1.5}
-                step={0.01}
-              >
-                <SliderTrack>
-                  <SliderRange />
-                </SliderTrack>
-                <SliderThumb />
-              </Slider>
-            </div>
+  <label className="block text-sm mb-2 flex justify-between">
+    <span>Vignetting:</span>
+    <span className="font-mono">{advancedParams.wormholeRadius.toFixed(2)}</span>
+  </label>
+  <Slider
+    value={[advancedParams.wormholeRadius]}
+    onValueChange={(value) =>
+      setAdvancedParams((prev) => ({
+        ...prev,
+        wormholeRadius: value[0],
+      }))
+    }
+    min={0.1}
+    max={1.5}
+    step={0.01}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
+
 
             <div>
-              <label className="block text-sm mb-2">
-                Ring Radius: {advancedParams.ringRadius.toFixed(2)}
-              </label>
-              <Slider
-                value={[advancedParams.ringRadius]}
-                onValueChange={(value) =>
-                  setAdvancedParams((prev) => ({
-                    ...prev,
-                    ringRadius: value[0],
-                  }))
-                }
-                min={0.01}
-                max={1.0}
-                step={0.01}
-              >
-                <SliderTrack>
-                  <SliderRange />
-                </SliderTrack>
-                <SliderThumb />
-              </Slider>
-            </div>
+  <label className="block text-sm mb-2 flex justify-between">
+    <span>Ring Radius:</span>
+    <span className="font-mono">{advancedParams.ringRadius.toFixed(2)}</span>
+  </label>
+  <Slider
+    value={[advancedParams.ringRadius]}
+    onValueChange={(value) =>
+      setAdvancedParams((prev) => ({
+        ...prev,
+        ringRadius: value[0],
+      }))
+    }
+    min={0.01}
+    max={1.0}
+    step={0.01}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
+
+
+           <div>
+  <label className="block text-sm mb-2 flex justify-between">
+    <span>Ring Sharpness:</span>
+    <span className="font-mono">{advancedParams.ringSharpness.toFixed(1)}</span>
+  </label>
+  <Slider
+    value={[advancedParams.ringSharpness]}
+    onValueChange={(value) =>
+      setAdvancedParams((prev) => ({
+        ...prev,
+        ringSharpness: value[0],
+      }))
+    }
+    min={1.0}
+    max={50.0}
+    step={0.5}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
+
+
+           <div>
+  <label className="block text-sm mb-2 flex justify-between">
+    <span>Ring Intensity:</span>
+    <span className="font-mono">{advancedParams.ringIntensity.toFixed(2)}</span>
+  </label>
+  <Slider
+    value={[advancedParams.ringIntensity]}
+    onValueChange={(value) =>
+      setAdvancedParams((prev) => ({
+        ...prev,
+        ringIntensity: value[0],
+      }))
+    }
+    min={0}
+    max={1.0}
+    step={0.01}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
+
+
+           <div>
+  <label className="block text-sm mb-2 flex justify-between">
+    <span>Zoom:</span>
+    <span className="font-mono">{advancedParams.zoom.toFixed(2)}</span>
+  </label>
+  <Slider
+    value={[advancedParams.zoom]}
+    onValueChange={(value) =>
+      setAdvancedParams((prev) => ({ ...prev, zoom: value[0] }))
+    }
+    min={0.5}
+    max={3.0}
+    step={0.01}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
+
 
             <div>
-              <label className="block text-sm mb-2">
-                Ring Sharpness: {advancedParams.ringSharpness.toFixed(1)}
-              </label>
-              <Slider
-                value={[advancedParams.ringSharpness]}
-                onValueChange={(value) =>
-                  setAdvancedParams((prev) => ({
-                    ...prev,
-                    ringSharpness: value[0],
-                  }))
-                }
-                min={1.0}
-                max={50.0}
-                step={0.5}
-              >
-                <SliderTrack>
-                  <SliderRange />
-                </SliderTrack>
-                <SliderThumb />
-              </Slider>
-            </div>
+  <label className="block text-sm mb-2 flex justify-between">
+    <span>Max Steps:</span>
+    <span className="font-mono">{advancedParams.maxSteps}</span>
+  </label>
+  <Slider
+    value={[advancedParams.maxSteps]}
+    onValueChange={(value) =>
+      setAdvancedParams((prev) => ({ ...prev, maxSteps: value[0] }))
+    }
+    min={100}
+    max={500}
+    step={10}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
 
-            <div>
-              <label className="block text-sm mb-2">
-                Ring Intensity: {advancedParams.ringIntensity.toFixed(2)}
-              </label>
-              <Slider
-                value={[advancedParams.ringIntensity]}
-                onValueChange={(value) =>
-                  setAdvancedParams((prev) => ({
-                    ...prev,
-                    ringIntensity: value[0],
-                  }))
-                }
-                min={0}
-                max={1.0}
-                step={0.01}
-              >
-                <SliderTrack>
-                  <SliderRange />
-                </SliderTrack>
-                <SliderThumb />
-              </Slider>
-            </div>
-
-            <div>
-              <label className="block text-sm mb-2">
-                Zoom: {advancedParams.zoom.toFixed(2)}
-              </label>
-              <Slider
-                value={[advancedParams.zoom]}
-                onValueChange={(value) =>
-                  setAdvancedParams((prev) => ({ ...prev, zoom: value[0] }))
-                }
-                min={0.5}
-                max={3.0}
-                step={0.01}
-              >
-                <SliderTrack>
-                  <SliderRange />
-                </SliderTrack>
-                <SliderThumb />
-              </Slider>
-            </div>
-
-            <div>
-              <label className="block text-sm mb-2">
-                Max Steps: {advancedParams.maxSteps}
-              </label>
-              <Slider
-                value={[advancedParams.maxSteps]}
-                onValueChange={(value) =>
-                  setAdvancedParams((prev) => ({ ...prev, maxSteps: value[0] }))
-                }
-                min={100}
-                max={500}
-                step={10}
-              >
-                <SliderTrack>
-                  <SliderRange />
-                </SliderTrack>
-                <SliderThumb />
-              </Slider>
-            </div>
 
             {/* Ring Color Controls */}
             <div className="space-y-4">
               <label className="block text-sm">Ring Color:</label>
+            <div>
+  <label className="block text-xs mb-1 flex justify-between text-neutral-400">
+    <span>Red:</span>
+    <span className="font-mono">{advancedParams.ringColor.r.toFixed(2)}</span>
+  </label>
+  <Slider
+    value={[advancedParams.ringColor.r]}
+    onValueChange={(value) =>
+      setAdvancedParams((prev) => ({
+        ...prev,
+        ringColor: { ...prev.ringColor, r: value[0] },
+      }))
+    }
+    min={0}
+    max={1.0}
+    step={0.01}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
+
               <div>
-                <label className="block text-xs mb-1 text-gray-400">
-                  Red: {advancedParams.ringColor.r.toFixed(2)}
-                </label>
-                <Slider
-                  value={[advancedParams.ringColor.r]}
-                  onValueChange={(value) =>
-                    setAdvancedParams((prev) => ({
-                      ...prev,
-                      ringColor: { ...prev.ringColor, r: value[0] },
-                    }))
-                  }
-                  min={0}
-                  max={1.0}
-                  step={0.01}
-                >
-                  <SliderTrack>
-                    <SliderRange />
-                  </SliderTrack>
-                  <SliderThumb />
-                </Slider>
-              </div>
+  <label className="block text-xs mb-1 flex justify-between text-neutral-400">
+    <span>Green:</span>
+    <span className="font-mono">{advancedParams.ringColor.g.toFixed(2)}</span>
+  </label>
+  <Slider
+    value={[advancedParams.ringColor.g]}
+    onValueChange={(value) =>
+      setAdvancedParams((prev) => ({
+        ...prev,
+        ringColor: { ...prev.ringColor, g: value[0] },
+      }))
+    }
+    min={0}
+    max={1.0}
+    step={0.01}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
+
               <div>
-                <label className="block text-xs mb-1 text-gray-400">
-                  Green: {advancedParams.ringColor.g.toFixed(2)}
-                </label>
-                <Slider
-                  value={[advancedParams.ringColor.g]}
-                  onValueChange={(value) =>
-                    setAdvancedParams((prev) => ({
-                      ...prev,
-                      ringColor: { ...prev.ringColor, g: value[0] },
-                    }))
-                  }
-                  min={0}
-                  max={1.0}
-                  step={0.01}
-                >
-                  <SliderTrack>
-                    <SliderRange />
-                  </SliderTrack>
-                  <SliderThumb />
-                </Slider>
-              </div>
-              <div>
-                <label className="block text-xs mb-1 text-gray-400">
-                  Blue: {advancedParams.ringColor.b.toFixed(2)}
-                </label>
-                <Slider
-                  value={[advancedParams.ringColor.b]}
-                  onValueChange={(value) =>
-                    setAdvancedParams((prev) => ({
-                      ...prev,
-                      ringColor: { ...prev.ringColor, b: value[0] },
-                    }))
-                  }
-                  min={0}
-                  max={1.0}
-                  step={0.01}
-                >
-                  <SliderTrack>
-                    <SliderRange />
-                  </SliderTrack>
-                  <SliderThumb />
-                </Slider>
-              </div>
+  <label className="block text-xs mb-1 flex justify-between text-gray-400">
+    <span>Blue:</span>
+    <span className="font-mono">{advancedParams.ringColor.b.toFixed(2)}</span>
+  </label>
+  <Slider
+    value={[advancedParams.ringColor.b]}
+    onValueChange={(value) =>
+      setAdvancedParams((prev) => ({
+        ...prev,
+        ringColor: { ...prev.ringColor, b: value[0] },
+      }))
+    }
+    min={0}
+    max={1.0}
+    step={0.01}
+  >
+    <SliderTrack>
+      <SliderRange />
+    </SliderTrack>
+    <SliderThumb />
+  </Slider>
+</div>
+
             </div>
           </div>
         )}
 
-        <div className="mt-3 pt-2 border-t border-gray-600 text-xs text-gray-400">
-          <div>Lensing Width: {(1.42953 * parameters.M).toFixed(3)}</div>
-          <div>
-            Throat Area:{" "}
-            {(4 * Math.PI * parameters.rho * parameters.rho).toFixed(2)}
-          </div>
-        </div>
+       <div className="mt-3 pt-2 border-t border-neutral-600 text-xs text-neutral-400 flex justify-between">
+  <div>
+    L-Width: <span className="font-mono">{(1.42953 * parameters.M).toFixed(3)} m</span>
+  </div>
+  <div>
+    T-Area: <span className="font-mono">{(4 * Math.PI * parameters.rho * parameters.rho).toFixed(2)} m²</span>
+  </div>
+</div>
+
+
       </div>
 
       {/* Status Display */}

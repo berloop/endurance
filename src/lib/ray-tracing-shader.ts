@@ -20,6 +20,8 @@ export const rayTracingFragmentShader = `
   uniform sampler2D uOutsideTexture;
   uniform vec3 uCameraPos;
   uniform float uTime;
+  uniform bool uAnimationPaused;
+  uniform float uPausedTime;
   
   // Advanced parameters
   uniform float uRotationSpeed;
@@ -108,20 +110,22 @@ export const rayTracingFragmentShader = `
     float distFromCenter = length(screenUV);
     
     // Multiple rotation modes for user experimentation
-    float rotationAmount;
-    if (uRotationMode == 0) {
-      // Oscillating (recommended - gentle swaying)
-      rotationAmount = sin(uTime * uRotationSpeed) * 0.5 * (1.0 - exp(-distFromCenter * uWarpingDistance));
-    } else if (uRotationMode == 1) {
-      // Bounded continuous (smooth spinning that resets)
-      rotationAmount = fract(uTime * uRotationSpeed * 0.1) * (1.0 - exp(-distFromCenter * uWarpingDistance));
-    } else if (uRotationMode == 2) {
-      // Slow linear (very gradual continuous rotation)
-      rotationAmount = mod(uTime * uRotationSpeed * 0.1, 1.0) * (1.0 - exp(-distFromCenter * uWarpingDistance));
-    } else {
-      // Accelerating (original - creates spiral effect over time)
-      rotationAmount = uTime * uRotationSpeed * (1.0 - exp(-distFromCenter * uWarpingDistance));
-    }
+   
+float timeValue = uAnimationPaused ? uPausedTime : uTime;
+float rotationAmount;
+if (uRotationMode == 0) {
+  // Oscillating (recommended - gentle swaying)
+  rotationAmount = sin(timeValue * uRotationSpeed) * 0.5 * (1.0 - exp(-distFromCenter * uWarpingDistance));
+} else if (uRotationMode == 1) {
+  // Bounded continuous (smooth spinning that resets)
+  rotationAmount = fract(timeValue * uRotationSpeed * 0.1) * (1.0 - exp(-distFromCenter * uWarpingDistance));
+} else if (uRotationMode == 2) {
+  // Slow linear (very gradual continuous rotation)
+  rotationAmount = mod(timeValue * uRotationSpeed * 0.1, 1.0) * (1.0 - exp(-distFromCenter * uWarpingDistance));
+} else {
+  // Accelerating (original - creates spiral effect over time)
+  rotationAmount = timeValue * uRotationSpeed * (1.0 - exp(-distFromCenter * uWarpingDistance));
+}
 
     // Use fract() for smoother wrapping and add small offset to avoid hard edges
     uv.x = fract(uv.x + rotationAmount + 0.5) - 0.5 + 0.5;
@@ -131,7 +135,7 @@ export const rayTracingFragmentShader = `
 
     // Dual texture sampling with soft blending
 vec4 galaxyColor;
-float blendWidth = 0.1; // Controls softness of the blend
+float blendWidth = 0.02; // Controls softness of the blend
 float blend = smoothstep(uWormholeRadius - blendWidth, uWormholeRadius + blendWidth, distFromCenter);
 
 // Sample both textures
