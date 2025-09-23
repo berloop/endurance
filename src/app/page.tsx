@@ -5,6 +5,8 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import RayTracingWormhole from "@/components/endurance/ray-tracing-wormhole";
 import DebugWormhole from "@/components/endurance/debug-wormhole";
+import Link from "next/link";
+import Header from "@/components/endurance/header";
 
 
 
@@ -76,19 +78,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-none">
       {/* Header */}
-      <motion.header 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="relative z-10 p-6"
-      >
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-light text-white">Lazarus Station <span className="text-sm">by Egret</span></h1>
-          <div className="text-sm text-gray-400">
-            Interstellar Wormhole Simulation
-          </div>
-        </div>
-      </motion.header>
+      <Header />
 
       {/* Main Content */}
       <motion.div
@@ -103,14 +93,21 @@ export default function Home() {
       </motion.div>
 
       {/* Footer Info */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8, delay: 0.5 }}
-        className="absolute bottom-4 right-4 z-10 text-xs text-gray-500"
-      >
-        Based on &quot;Visualizing Interstellar&apos;s Wormhole&quot; by James, von Tunzelmann, Franklin & Thorne
-      </motion.div>
+   <motion.div
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ duration: 0.8, delay: 0.5 }}
+  className="absolute bottom-4 right-4 md:right-4 left-4 md:left-auto z-10 text-xs text-gray-500 text-center md:text-right"
+>
+  <Link 
+    href="https://pubs.aip.org/aapt/ajp/article/83/6/486/1057802/Visualizing-Interstellar-s-Wormhole"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="underline-none hover:text-gray-400 transition-colors"
+  >
+    Based on a research paper &quot;Visualizing Interstellar&apos;s Wormhole&quot; by James, von Tunzelmann, Franklin & Thorne
+  </Link>
+</motion.div>
     </main>
   );
 }

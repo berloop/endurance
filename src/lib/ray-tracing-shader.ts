@@ -17,6 +17,7 @@ export const rayTracingFragmentShader = `
   uniform float uA;
   uniform float uM;
   uniform sampler2D uGalaxyTexture;
+  uniform sampler2D uOutsideTexture;
   uniform vec3 uCameraPos;
   uniform float uTime;
   
@@ -30,6 +31,7 @@ export const rayTracingFragmentShader = `
   uniform float uZoom;
   uniform int uMaxSteps;
   uniform int uRotationMode;
+  uniform float uWormholeRadius;
   
   varying vec2 vUv;
   varying vec3 vWorldPosition;
@@ -127,10 +129,19 @@ export const rayTracingFragmentShader = `
     // Clamp UV coordinates to avoid sampling at exact texture edges
     uv = clamp(uv, vec2(0.002, 0.002), vec2(0.998, 0.998));
 
-    // Sample texture with better filtering
-    vec4 galaxyColor = texture2D(uGalaxyTexture, uv);
+    // Dual texture sampling with soft blending
+vec4 galaxyColor;
+float blendWidth = 0.1; // Controls softness of the blend
+float blend = smoothstep(uWormholeRadius - blendWidth, uWormholeRadius + blendWidth, distFromCenter);
+
+// Sample both textures
+vec4 insideColor = texture2D(uGalaxyTexture, uv);
+vec4 outsideColor = texture2D(uOutsideTexture, uv);
+
+// Blend between them (I am blending the edge between one texture and the other one...)
+galaxyColor = mix(insideColor, outsideColor, blend);
     
-    // Add Einstein ring glow with controllable parameters
+    // Adding Einstein's ring glow with controllable parameters
     float ringDistance = abs(distFromCenter - uRingRadius);
     float ringGlow = exp(-ringDistance * uRingSharpness) * uRingIntensity;
     galaxyColor.rgb += uRingColor * ringGlow;

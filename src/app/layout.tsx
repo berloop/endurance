@@ -10,10 +10,10 @@ import { AlertCircle, CheckCircle } from "lucide-react";
 import { Figtree } from 'next/font/google'; 
 
 export const metadata: Metadata = {
-  title: "Endurance | By Egret",
+  title: "Lazarus | By Egret",
   description: "Lazarus Missions",
   openGraph: {
-    title: "Endurance | By Egret",
+    title: "Lazarus | By Egret",
     description: "Lazarus Missions",
     url: "https://endurance.space",
     type: "website",
@@ -28,9 +28,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Endurance | By Egret",
+    title: "Lazarus | By Egret",
     description: "Lazarus Missions",
-    site: "@endurance.space",
+    site: "@lazarus.space",
     images: ["#"],
   }
 };
