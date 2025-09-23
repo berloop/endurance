@@ -20,12 +20,22 @@ export const rayTracingFragmentShader = `
   uniform vec3 uCameraPos;
   uniform float uTime;
   
+  // Advanced parameters
+  uniform float uRotationSpeed;
+  uniform float uWarpingDistance;
+  uniform float uRingRadius;
+  uniform float uRingSharpness;
+  uniform float uRingIntensity;
+  uniform vec3 uRingColor;
+  uniform float uZoom;
+  uniform int uMaxSteps;
+  uniform int uRotationMode;
+  
   varying vec2 vUv;
   varying vec3 vWorldPosition;
   
   const float PI = 3.1415926538;
   const float dt = 0.05;
-  const int maxSteps = 300;
   
   // Wormhole function r(l) - exact from reference
   float LtoR(float l) {
@@ -45,7 +55,6 @@ export const rayTracingFragmentShader = `
     return 2.0 * atan(x) * sign(l) / PI;
   }
     
-  
   vec2 directionToEquirectangular(vec3 dir) {
     float theta = acos(clamp(dir.y, -1.0, 1.0));
     float phi = atan(dir.z, dir.x);
@@ -55,9 +64,9 @@ export const rayTracingFragmentShader = `
   
   void main() {
     float camL = length(uCameraPos);
-    float zoom = 1.5;
+    float zoom = uZoom;
     
-    // Ray projection - exact from reference (no rotation here)
+    // Ray projection - exact from reference
     vec2 screenUV = (vUv - 0.5) * 2.0;
     vec3 vel = normalize(vec3(-zoom, screenUV));
     vec2 beta = normalize(vel.yz);
@@ -70,22 +79,21 @@ export const rayTracingFragmentShader = `
     float phi = 0.0;
     float dr;
     
-   for (int steps = 0; steps < maxSteps; steps++) {
-  // Extend integration bounds based on lensing parameter
-  float integrationBound = max(abs(camL) * 2.0, uA + uM * 8.0); // Increased from 5.0
-  if (abs(l) >= integrationBound) break;
-  
-  dr = LtoDR(l);
-  r = LtoR(l);
-  
-  // Adaptive step size - smaller steps for weaker lensing
-  float adaptiveStep = dt * (0.5 + uM * 0.5); // Scale step with lensing strength
-  
-  l += dl * adaptiveStep;
-  phi += H / (r * r) * adaptiveStep;
-  dl += H * H * dr / (r * r * r) * adaptiveStep;
-}
-  
+    for (int steps = 0; steps < uMaxSteps; steps++) {
+      // Extend integration bounds based on lensing parameter
+      float integrationBound = max(abs(camL) * 2.0, uA + uM * 8.0);
+      if (abs(l) >= integrationBound) break;
+      
+      dr = LtoDR(l);
+      r = LtoR(l);
+      
+      // Adaptive step size - smaller steps for weaker lensing
+      float adaptiveStep = dt * (0.5 + uM * 0.5);
+      
+      l += dl * adaptiveStep;
+      phi += H / (r * r) * adaptiveStep;
+      dl += H * H * dr / (r * r * r) * adaptiveStep;
+    }
     
     // Sky direction - exact from reference
     float dx = dl * dr * cos(phi) - H / r * sin(phi);
@@ -93,25 +101,39 @@ export const rayTracingFragmentShader = `
     vec3 rayVec = normalize(vec3(dx, dy * beta));
     vec3 cubeVec = vec3(-rayVec.x, rayVec.z, -rayVec.y);
     
-    // Add rotation effect to texture sampling only
+    // Add rotation effect with multiple modes
     vec2 uv = directionToEquirectangular(cubeVec);
     float distFromCenter = length(screenUV);
     
-    // Apply rotation based on distance from center and lensing strength
-    float rotationAmount = uTime * 0.2 * (1.0 - exp(-distFromCenter * 2.0)); //tHE WARPING EFFECT.
-    //float rotationAmount = uTime * 0.2 * (1.0 - exp(-distFromCenter * 0.5));  //One directional bending cause the formula returns positive values.
-    
+    // Multiple rotation modes for user experimentation
+    float rotationAmount;
+    if (uRotationMode == 0) {
+      // Oscillating (recommended - gentle swaying)
+      rotationAmount = sin(uTime * uRotationSpeed) * 0.5 * (1.0 - exp(-distFromCenter * uWarpingDistance));
+    } else if (uRotationMode == 1) {
+      // Bounded continuous (smooth spinning that resets)
+      rotationAmount = fract(uTime * uRotationSpeed * 0.1) * (1.0 - exp(-distFromCenter * uWarpingDistance));
+    } else if (uRotationMode == 2) {
+      // Slow linear (very gradual continuous rotation)
+      rotationAmount = mod(uTime * uRotationSpeed * 0.1, 1.0) * (1.0 - exp(-distFromCenter * uWarpingDistance));
+    } else {
+      // Accelerating (original - creates spiral effect over time)
+      rotationAmount = uTime * uRotationSpeed * (1.0 - exp(-distFromCenter * uWarpingDistance));
+    }
 
+    // Use fract() for smoother wrapping and add small offset to avoid hard edges
+    uv.x = fract(uv.x + rotationAmount + 0.5) - 0.5 + 0.5;
 
-    uv.x = mod(uv.x + rotationAmount, 1.0);
-    
+    // Clamp UV coordinates to avoid sampling at exact texture edges
+    uv = clamp(uv, vec2(0.002, 0.002), vec2(0.998, 0.998));
+
+    // Sample texture with better filtering
     vec4 galaxyColor = texture2D(uGalaxyTexture, uv);
     
-    // Add Einstein ring glow
-    float ringRadius = .1;
-    float ringDistance = abs(distFromCenter - ringRadius);
-    float ringGlow = exp(-ringDistance * 15.0) * 0.4;
-    galaxyColor.rgb += vec3(0.6, 0.8, 1.0) * ringGlow;
+    // Add Einstein ring glow with controllable parameters
+    float ringDistance = abs(distFromCenter - uRingRadius);
+    float ringGlow = exp(-ringDistance * uRingSharpness) * uRingIntensity;
+    galaxyColor.rgb += uRingColor * ringGlow;
     
     gl_FragColor = galaxyColor;
   }
