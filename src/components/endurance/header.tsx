@@ -5,6 +5,8 @@ import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import { useState } from 'react'
+import { TooltipProvider } from '@radix-ui/react-tooltip'
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
 
 const Header = () => {
   const pathname = usePathname()
@@ -26,11 +28,26 @@ const Header = () => {
     >
       <div className="flex items-center justify-between">
         {/* Logo/Brand */}
-        <Link href="/" className="flex items-center">
-          <h1 className="text-xl md:text-2xl font-light text-white hover:text-gray-300 transition-colors">
-            Project Lazarus <span className="text-xs md:text-sm text-neutral-400">by Egret </span>
-          </h1>
-        </Link>
+      <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link href="/" className="flex items-center">
+            <h1 className="text-xl md:text-2xl font-light text-white hover:text-gray-300 transition-colors tracking-tighter">
+              Project <span className="uppercase text-md">L.a.z.a.r.u.s</span>{" "}
+              <span className="text-xs md:text-sm text-neutral-400">by Egret</span>
+            </h1>
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent
+          side="left"
+          align="center"
+          className="hidden md:block bg-black text-white px-4 py-2 rounded-md shadow-lg text-xs max-w-xs text-center"
+        >
+          <span className='text-green-500'>L.A.Z.A.R.U.S →</span> Lensing Anomalies & Zone Astrophysics for Research on Universal Singularities
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-8">

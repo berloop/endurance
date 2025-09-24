@@ -4,10 +4,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
-import CursorWrapper from "@/components/CursorWrapper";
+// import CursorWrapper from "@/components/CursorWrapper";
 import { Toaster } from 'react-hot-toast';
 import { AlertCircle, CheckCircle } from "lucide-react";
-import { Figtree } from 'next/font/google'; 
+ 
 
 export const metadata: Metadata = {
   title: "Lazarus | By Egret",
@@ -15,14 +15,14 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Lazarus | By Egret",
     description: "Lazarus Missions",
-    url: "https://endurance.space",
+    url: "https://lazarus.space",
     type: "website",
     images: [
       {
         url: "#",
         width: 1200,
         height: 718,
-        alt: "Endurance | By Egret"
+        alt: "Lazarus | By Egret"
       }
     ]
   },
@@ -35,11 +35,6 @@ export const metadata: Metadata = {
   }
 };
 
-const figtree = Figtree({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-figtree',
-});
 
 
 export default function RootLayout({
@@ -55,7 +50,7 @@ export default function RootLayout({
           content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
         />
       </head>
-      <body className={figtree.variable}>
+      <body>
       {/* <CursorWrapper>  */}
         {children}
         {/* </CursorWrapper> */}

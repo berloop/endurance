@@ -32,6 +32,8 @@ import MusicControls from "./music-controls";
 import { createTwinklingStarMaterial } from "@/lib/star-shader";
 import { WormholeAnnotations } from "@/lib/wormhole-annotations";
 import { AnimatePresence, motion } from "framer-motion";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
+
 
 interface WormholeParameters {
   rho: number; // Wormhole radius (ρ)
@@ -52,6 +54,7 @@ interface AdvancedParameters {
   wormholeRadius: number;
   animationPaused: boolean;
   showParticles: boolean;
+  showEndurance: boolean;
 }
 
 const DebugWormhole: React.FC<{ className?: string }> = ({
@@ -72,6 +75,7 @@ const fpsRef = useRef(0);
 const frameTimeRef = useRef(performance.now());
 const fpsHistory = useRef<number[]>([]);
 const lastFpsUpdate = useRef(0);
+const enduranceRef = useRef<THREE.Group | null>(null);
 
   const [parameters, setParameters] = useState<WormholeParameters>({
     rho: 0.3,
@@ -103,6 +107,7 @@ const lastFpsUpdate = useRef(0);
     wormholeRadius: 0.6,
     animationPaused: false,
     showParticles: true,
+    showEndurance: false //disabling the ship for now....
   });
 
   const [textures, setTextures] = useState<{
@@ -158,6 +163,20 @@ const lastFpsUpdate = useRef(0);
     const saturnTexture = createStarfield();
     setTextures((prev) => ({ ...prev, saturn: saturnTexture }));
   }, []);
+
+  useEffect(() => {
+  const loader = new GLTFLoader();
+  loader.load('/models/endurance.glb', (gltf: { scene: any; }) => {
+    const ship = gltf.scene;
+    ship.scale.setScalar(0.02); // Make it small for scale reference
+    ship.position.set(-3, -1, 2); // Position in front of wormhole
+    enduranceRef.current = ship;
+    
+    if (sceneRef.current && advancedParams.showEndurance) {
+      sceneRef.current.add(ship);
+    }
+  });
+}, []);
 
   const createProceduralGalaxy = () => {
     const canvas = document.createElement("canvas");
@@ -628,6 +647,12 @@ const toggleFullscreen = useCallback(async () => {
     lastFpsUpdate.current = now;
   }
 
+if (enduranceRef.current && advancedParams.showEndurance) {
+  enduranceRef.current.rotation.x += -0.01; // Slow rotation like in movie
+}
+
+// Ensure renderer clears the frame before drawing
+rendererRef.current?.render(sceneRef.current!, cameraRef.current!);
 
       if (renderMode === "geometry") {
         const wormhole = scene.getObjectByName("wormhole");
@@ -965,6 +990,17 @@ useEffect(() => {
                   <SliderThumb />
                 </Slider>
               </div>
+              {/* <div>
+  <label className="block text-sm mb-2">Endurance Ship</label>
+  <Button
+    size="sm"
+    variant={advancedParams.showEndurance ? "default" : "secondary"}
+    onClick={() => setAdvancedParams(prev => ({ ...prev, showEndurance: !prev.showEndurance }))}
+    className="w-full flex items-center gap-2 justify-center"
+  >
+    {advancedParams.showEndurance ? "Hide Ship" : "Show Ship"}
+  </Button>
+</div> */}
             </div>
           </div>
         </div>
