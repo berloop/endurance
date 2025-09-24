@@ -65,12 +65,12 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
 
   const [parameters, setParameters] = useState<WormholeParameters>({
     rho: 0.3,
-    a: 0.001,
+    a: 0.002,
     M: 0.53,
   });
 
   const [cameraPosition, setCameraPosition] = useState({
-    distance: 10.0,
+    distance: 7.0,
     theta: 0,
     phi: 0,
   });
@@ -81,14 +81,14 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [advancedParams, setAdvancedParams] = useState<AdvancedParameters>({
-    rotationSpeed: 0.2,
-    warpingDistance: 2.0,
-    ringRadius: 0.08,
-    ringSharpness: 15.0,
-    ringIntensity: 0.4,
-    ringColor: { r: 0.6, g: 0.8, b: 1.0 },
-    zoom: 1.5,
-    maxSteps: 300,
+    rotationSpeed: 0.37,
+    warpingDistance: 4.0,
+    ringRadius: 0.09,
+    ringSharpness: 68.0,
+    ringIntensity: 0.68,
+    ringColor: { r: 0.26, g: 0.45, b: 0.79 },
+    zoom: 1.77,
+    maxSteps: 365,
     rotationMode: 0,
     wormholeRadius: 0.6,
     animationPaused: false,
@@ -685,7 +685,7 @@ if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms
       <div ref={mountRef} className="w-full h-full" />
 
       {/* Parameter Controls */}
-      <div className="absolute top-4 left-4 bg-neutral-950 backdrop-blur-sm rounded-xs p-4 text-white max-w-xs max-h-[90vh] overflow-y-auto scrollbar-none">
+      <div className="absolute top-4 left-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white max-w-xs max-h-[90vh] overflow-y-auto scrollbar-none">
         <h3 className="text-lg font-semibold mb-3">Wormhole Parameters</h3>
 
         {/* Render Mode Toggle */}
@@ -1233,7 +1233,7 @@ if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms
       </div>
 
       {/* Status Display */}
-      <div className="absolute top-4 right-4 bg-neutral-950 backdrop-blur-sm rounded-xs p-4 text-white">
+      <div className="absolute top-4 right-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white">
         <div className="text-xs space-y-1">
           {renderMode === "geodesic" ? (
             <div className="flex items-center text-purple-400 gap-2">
@@ -1241,11 +1241,11 @@ if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms
               <BoxIcon className="w-4 h-4" /> Geodesic Integration
             </div>
           ) : renderMode === "raytraced" ? (
-            <div className="flex items-center text-green-400 gap-2">
-              <CircleDot className="w-2 h-2 animate-ping" /> Ray Tracing Active
+            <div className="flex items-center text-green-500 gap-2">
+              <CircleDot className="w-2 h-2 animate-ping" /> Ray Tracing Active.
             </div>
           ) : (
-            <div className="flex items-center text-green-400 gap-2">
+            <div className="flex items-center text-green-500 gap-2">
               <Disc3Icon className="w-4 h-4 animate-spin" /> Geometry Mode
             </div>
           )}

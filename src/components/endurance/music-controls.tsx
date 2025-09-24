@@ -31,7 +31,7 @@ const MusicControls: React.FC<MusicControlsProps> = ({ className = "" }) => {
   };
 
   return (
-    <div className={`bg-neutral-950 backdrop-blur-sm rounded-xs p-4 text-white max-w-xs ${className}`}>
+    <div className={`bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white max-w-xs ${className}`}>
       <div className="flex items-center gap-2 mb-3">
         <Music className="w-5 h-5" />
         <h3 className="text-lg font-semibold">Audio Controls</h3>
