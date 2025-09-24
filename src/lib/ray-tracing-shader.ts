@@ -136,14 +136,17 @@ if (uRotationMode == 0) {
   // Oscillating (recommended - gentle swaying)
   rotationAmount = sin(timeValue * uRotationSpeed) * 0.5 * (1.0 - exp(-distFromCenter * uWarpingDistance));
 } else if (uRotationMode == 1) {
-  // Bounded continuous (smooth spinning that resets)
-  rotationAmount = fract(timeValue * uRotationSpeed * 0.1) * (1.0 - exp(-distFromCenter * uWarpingDistance));
+  
+ // Smooth back-and-forth motion instead of hard reset
+float cycle = timeValue * uRotationSpeed * 0.05;
+rotationAmount = (sin(cycle) * 0.5 + 0.5) * (1.0 - exp(-distFromCenter * uWarpingDistance));
 } else if (uRotationMode == 2) {
   // Slow linear (very gradual continuous rotation)
-  rotationAmount = mod(timeValue * uRotationSpeed * 0.1, 1.0) * (1.0 - exp(-distFromCenter * uWarpingDistance));
+ // Continuous slow rotation without resets
+rotationAmount = timeValue * uRotationSpeed * 0.05 * (1.0 - exp(-distFromCenter * uWarpingDistance));
 } else {
   // Accelerating (original - creates spiral effect over time)
-  rotationAmount = timeValue * uRotationSpeed * (1.0 - exp(-distFromCenter * uWarpingDistance));
+ rotationAmount = sin(timeValue * uRotationSpeed * 0.05) * 12.0 * (1.0 - exp(-distFromCenter * uWarpingDistance));
 }
 
     // Use fract() for smoother wrapping and add small offset to avoid hard edges

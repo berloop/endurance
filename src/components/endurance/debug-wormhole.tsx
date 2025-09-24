@@ -31,6 +31,7 @@ import { Button } from "../ui/button";
 import MusicControls from "./music-controls";
 import { createTwinklingStarMaterial } from "@/lib/star-shader";
 import { WormholeAnnotations } from "@/lib/wormhole-annotations";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface WormholeParameters {
   rho: number; // Wormhole radius (ρ)
@@ -66,6 +67,11 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const uiSoundRef = useRef<HTMLAudioElement>(null);
 const [soundEnabled, setSoundEnabled] = useState(true);
+const [fps, setFps] = useState(60);
+const fpsRef = useRef(0);
+const frameTimeRef = useRef(performance.now());
+const fpsHistory = useRef<number[]>([]);
+const lastFpsUpdate = useRef(0);
 
   const [parameters, setParameters] = useState<WormholeParameters>({
     rho: 0.3,
@@ -602,6 +608,27 @@ const toggleFullscreen = useCallback(async () => {
     const animate = () => {
       animationIdRef.current = requestAnimationFrame(animate);
 
+      // Calculate FPS ..
+  const now = performance.now();
+  const deltaTime = now - frameTimeRef.current;
+  frameTimeRef.current = now;
+  
+  const currentFps = 1000 / deltaTime;
+  
+  // Collect samples
+  fpsHistory.current.push(currentFps);
+  if (fpsHistory.current.length > 60) { // More samples for stability
+    fpsHistory.current.shift();
+  }
+  
+  // Update only every 2 seconds
+  if (now - lastFpsUpdate.current > 2000) {
+    const avgFps = fpsHistory.current.reduce((a, b) => a + b, 0) / fpsHistory.current.length;
+    setFps(Math.round(avgFps));
+    lastFpsUpdate.current = now;
+  }
+
+
       if (renderMode === "geometry") {
         const wormhole = scene.getObjectByName("wormhole");
         if (wormhole) {
@@ -751,9 +778,22 @@ useEffect(() => {
       <div ref={mountRef} className="w-full h-full" />
 
       {/* Parameter Controls */}
-      {uiVisible && (
-      <div className="absolute top-4 left-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white max-w-xs max-h-[90vh] overflow-y-auto scrollbar-none">
-        <h3 className="text-lg font-semibold mb-3">Wormhole Parameters</h3>
+      {/* Parameter Controls */}
+<AnimatePresence>
+  {uiVisible && (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8, x: -20 }}
+      animate={{ opacity: 1, scale: 1, x: 0 }}
+      exit={{ opacity: 0, scale: 0.8, x: -20 }}
+      transition={{ 
+        type: "spring", 
+        stiffness: 500, 
+        damping: 25,
+        duration: 0.15 
+      }}
+      className="hidden md:block absolute top-4 left-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white max-w-xs max-h-[90vh] overflow-y-auto scrollbar-none"
+    >
+      <h3 className="text-lg font-semibold mb-3">Wormhole Parameters</h3>
 
         {/* Render Mode Toggle */}
         <div className="mb-4">
@@ -1330,36 +1370,70 @@ useEffect(() => {
             </span>
           </div>
         </div>
+     </motion.div>
+  )}
+</AnimatePresence>
+
+   
+{/* Status Display */}
+<AnimatePresence>
+  {uiVisible && (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8, x: 20 }}
+      animate={{ opacity: 1, scale: 1, x: 0 }}
+      exit={{ opacity: 0, scale: 0.8, x: 20 }}
+      transition={{ 
+        type: "spring", 
+        stiffness: 500, 
+        damping: 25,
+        duration: 0.15 
+      }}
+      className="hidden md:block absolute top-4 right-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white"
+    >
+      <div className="text-xs space-y-1">
+        {renderMode === "geodesic" ? (
+          <div className="flex items-center text-purple-400 gap-2">
+            <BoxIcon className="w-4 h-4" /> Geodesic Integration
+          </div>
+        ) : renderMode === "raytraced" ? (
+          <div className="flex items-center text-green-500 gap-2">
+            <CircleDot className="w-2 h-2 animate-ping" /> Ray Tracing Active.
+          </div>
+        ) : (
+          <div className="flex items-center text-green-500 gap-2">
+            <Disc3Icon className="w-4 h-4 animate-spin" /> Geometry Mode
+          </div>
+        )}
+         
+        {/* FPS Counter */}
+       {/* FPS Counter */}
+<div className="flex items-center justify-end text-neutral-300">
+  <span className="font-mono text-xs">{fps} FPS</span>
+</div>
       </div>
-      )}
+    </motion.div>
+  )}
+</AnimatePresence>
 
-     {/* Status Display */}
-{uiVisible && (
-  <div className="absolute top-4 right-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white">
-    <div className="text-xs space-y-1">
-      {renderMode === "geodesic" ? (
-        <div className="flex items-center text-purple-400 gap-2">
-          {/* I am no longer using Geodesic rendermode tab, it was not unnecessary.. */}
-          <BoxIcon className="w-4 h-4" /> Geodesic Integration
-        </div>
-      ) : renderMode === "raytraced" ? (
-        <div className="flex items-center text-green-500 gap-2">
-          <CircleDot className="w-2 h-2 animate-ping" /> Ray Tracing Active.
-        </div>
-      ) : (
-        <div className="flex items-center text-green-500 gap-2">
-          <Disc3Icon className="w-4 h-4 animate-spin" /> Geometry Mode
-        </div>
-      )}
-    </div>
-  </div>
-)}
-
-      {/* Music Controls - NEW shit */}
-      {uiVisible && (
-      <MusicControls className="absolute bottom-14 right-4 hidden md:block" />
-      
-)}
+     {/* Music Controls - NEW */}
+<AnimatePresence>
+  {uiVisible && (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8, x: 20 }}
+      animate={{ opacity: 1, scale: 1, x: 0 }}
+      exit={{ opacity: 0, scale: 0.8, x: 20 }}
+      transition={{ 
+        type: "spring", 
+        stiffness: 500, 
+        damping: 25,
+        duration: 0.15 
+      }}
+      className="absolute bottom-14 right-4 hidden md:block"
+    >
+      <MusicControls />
+    </motion.div>
+  )}
+</AnimatePresence>
 
 {/* Toggle hint - always visible */}
 <div className="md:block hidden absolute bottom-4 left-4 text-white text-xs opacity-50 pointer-events-none">

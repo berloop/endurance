@@ -45,7 +45,7 @@ const MusicControls: React.FC<MusicControlsProps> = ({ className = "" }) => {
             <Button
               key={index}
               size="sm"
-              variant={currentTrack === index ? "default" : "secondary"}
+              variant={currentTrack === index ? "default" : "ghost"}
               onClick={() => setCurrentTrack(index)}
               className="text-xs justify-start h-8"
             >
