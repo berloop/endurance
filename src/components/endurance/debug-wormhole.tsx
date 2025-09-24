@@ -83,7 +83,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
   const [advancedParams, setAdvancedParams] = useState<AdvancedParameters>({
     rotationSpeed: 0.2,
     warpingDistance: 2.0,
-    ringRadius: 0.1,
+    ringRadius: 0.08,
     ringSharpness: 15.0,
     ringIntensity: 0.4,
     ringColor: { r: 0.6, g: 0.8, b: 1.0 },
@@ -1024,7 +1024,7 @@ if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms
 
             <div>
   <label className="block text-sm mb-2 flex justify-between">
-    <span>Ring Radius:</span>
+    <span>Einstein&apos;s Ring Radius:</span>
     <span className="font-mono">{advancedParams.ringRadius.toFixed(2)}</span>
   </label>
   <Slider
@@ -1060,8 +1060,8 @@ if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms
         ringSharpness: value[0],
       }))
     }
-    min={1.0}
-    max={50.0}
+    min={25.0}
+    max={100.0}
     step={0.5}
   >
     <SliderTrack>
@@ -1107,8 +1107,8 @@ if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms
     onValueChange={(value) =>
       setAdvancedParams((prev) => ({ ...prev, zoom: value[0] }))
     }
-    min={0.5}
-    max={3.0}
+    min={1.5}
+    max={2.0}
     step={0.01}
   >
     <SliderTrack>
@@ -1129,9 +1129,9 @@ if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms
     onValueChange={(value) =>
       setAdvancedParams((prev) => ({ ...prev, maxSteps: value[0] }))
     }
-    min={100}
-    max={500}
-    step={10}
+    min={270}
+    max={400}
+    step={5}
   >
     <SliderTrack>
       <SliderRange />

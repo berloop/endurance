@@ -17,6 +17,7 @@ const MusicControls: React.FC<MusicControlsProps> = ({ className = "" }) => {
     { name: 'Day One (Interstellar Theme)', file: '/music/Day.One.mp3' },
     { name: 'The Wormhole - Zimmer', file: '/music/The.Wormhole.mp3' },
      { name: 'Alessandro Roussel - ScienceClic Musique', file: '/music/Science.Clic.Musique.mp3' },
+        { name: 'Dust Bowl x Day One', file: '/music/dust.bowl.mp3' },
    
    
   ];
