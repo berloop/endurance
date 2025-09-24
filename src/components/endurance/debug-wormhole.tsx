@@ -20,11 +20,17 @@ import {
   ChevronUp,
   Settings,
   Settings2Icon,
+  Play,
+  Pause,
+  MoonStarIcon,
 } from "lucide-react";
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import * as THREE from "three";
 import { Slider } from "../ui/slider";
 import { Button } from "../ui/button";
+import MusicControls from "./music-controls";
+import { createTwinklingStarMaterial } from "@/lib/star-shader";
+import { WormholeAnnotations } from "@/lib/wormhole-annotations";
 
 interface WormholeParameters {
   rho: number; // Wormhole radius (ρ)
@@ -44,6 +50,7 @@ interface AdvancedParameters {
   rotationMode: number;
   wormholeRadius: number;
   animationPaused: boolean;
+  showParticles: boolean;
 }
 
 const DebugWormhole: React.FC<{ className?: string }> = ({
@@ -54,6 +61,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
   const rendererRef = useRef<THREE.WebGLRenderer>();
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   const animationIdRef = useRef<number>();
+  const annotationsRef = useRef<WormholeAnnotations | null>(null);
 
   const [parameters, setParameters] = useState<WormholeParameters>({
     rho: 0.3,
@@ -84,6 +92,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
     rotationMode: 0,
     wormholeRadius: 0.6,
     animationPaused: false,
+    showParticles: true
   });
 
   const [textures, setTextures] = useState<{
@@ -272,6 +281,42 @@ uPausedTime: { value: 0 },
         const rayTracer = new THREE.Mesh(rayTracerGeometry, rayTracerMaterial);
         rayTracer.name = "rayTracer";
         scene.add(rayTracer);
+    
+// Let me add some hollywood stars...
+if (advancedParams.showParticles) {
+  const starGeometry = new THREE.BufferGeometry();
+  const starCount = 1000;
+  const starPositions = new Float32Array(starCount * 3);
+  const flickerData = new Float32Array(starCount);
+  const flickerSpeed = new Float32Array(starCount);
+
+  for (let i = 0; i < starCount; i++) {
+    // Create stars in a spherical shell, keeping them far from camera
+    const phi = Math.random() * Math.PI * 2;
+    const theta = Math.random() * Math.PI;
+    const minRadius = 50; // Minimum distance from center
+    const maxRadius = 80; // Maximum distance from center
+    const radius = minRadius + Math.random() * (maxRadius - minRadius);
+    
+    starPositions[i * 3] = radius * Math.sin(theta) * Math.cos(phi);
+    starPositions[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
+    starPositions[i * 3 + 2] = radius * Math.cos(theta);
+    
+    // Flicker attributes
+    flickerData[i] = Math.random() * Math.PI * 2; // Random phase
+    flickerSpeed[i] = 0.5 + Math.random() * 2.0; // Random speed
+  }
+
+  starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  starGeometry.setAttribute('flickerData', new THREE.BufferAttribute(flickerData, 1));
+  starGeometry.setAttribute('flickerSpeed', new THREE.BufferAttribute(flickerSpeed, 1));
+
+  // Create twinkling star material
+  const starMaterial = new THREE.ShaderMaterial(createTwinklingStarMaterial(0.4));
+  const stars = new THREE.Points(starGeometry, starMaterial);
+  stars.name = 'stars'; // For animation updates
+  scene.add(stars);
+}
 
         (rayTracer as any).rayTracerMaterial = rayTracerMaterial;
       } else if (
@@ -394,7 +439,7 @@ uPausedTime: { value: 0 },
             64
           ),
           new THREE.MeshBasicMaterial({
-            color: 0xff0000,
+            color: 0x20B356,
             transparent: true,
             opacity: 0.8,
           })
@@ -436,6 +481,47 @@ uPausedTime: { value: 0 },
         group.add(particles);
 
         scene.add(group);
+         // Add mathematical annotations
+  if (!annotationsRef.current) {
+    annotationsRef.current = new WormholeAnnotations(scene);
+  }
+  annotationsRef.current.createAnnotations(parameters);
+
+         // Adding background stars for geometry mode..
+if (advancedParams.showParticles) {
+  const starGeometry = new THREE.BufferGeometry();
+  const starCount = 1000;
+  const starPositions = new Float32Array(starCount * 3);
+  const flickerData = new Float32Array(starCount);
+  const flickerSpeed = new Float32Array(starCount);
+
+  for (let i = 0; i < starCount; i++) {
+    // Create stars in a spherical shell, keeping them far from camera
+    const phi = Math.random() * Math.PI * 2;
+    const theta = Math.random() * Math.PI;
+    const minRadius = 50; // Minimum distance from center
+    const maxRadius = 80; // Maximum distance from center
+    const radius = minRadius + Math.random() * (maxRadius - minRadius);
+    
+    starPositions[i * 3] = radius * Math.sin(theta) * Math.cos(phi);
+    starPositions[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
+    starPositions[i * 3 + 2] = radius * Math.cos(theta);
+    
+    // Flicker attributes
+    flickerData[i] = Math.random() * Math.PI * 2; // Random phase
+    flickerSpeed[i] = 0.5 + Math.random() * 2.0; // Random speed
+  }
+
+  starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+  starGeometry.setAttribute('flickerData', new THREE.BufferAttribute(flickerData, 1));
+  starGeometry.setAttribute('flickerSpeed', new THREE.BufferAttribute(flickerSpeed, 1));
+
+  // Create twinkling star material
+  const starMaterial = new THREE.ShaderMaterial(createTwinklingStarMaterial(0.4));
+  const stars = new THREE.Points(starGeometry, starMaterial);
+  stars.name = 'stars'; // For animation updates
+  scene.add(stars);
+}
       }
     },
     [
@@ -474,29 +560,8 @@ uPausedTime: { value: 0 },
     mountRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // Add background stars
-    const starGeometry = new THREE.BufferGeometry();
-    const starCount = 1000;
-    const starPositions = new Float32Array(starCount * 3);
-
-    for (let i = 0; i < starCount; i++) {
-      starPositions[i * 3] = (Math.random() - 0.5) * 100;
-      starPositions[i * 3 + 1] = (Math.random() - 0.5) * 100;
-      starPositions[i * 3 + 2] = (Math.random() - 0.5) * 100;
-    }
-
-    starGeometry.setAttribute(
-      "position",
-      new THREE.BufferAttribute(starPositions, 3)
-    );
-
-    const starMaterial = new THREE.PointsMaterial({
-      color: 0xffffff,
-      size: 0.1,
-    });
-
-    const stars = new THREE.Points(starGeometry, starMaterial);
-    scene.add(stars);
+    
+ 
 
     createWormholeGeometry(scene);
     updateCameraPosition();
@@ -510,6 +575,12 @@ uPausedTime: { value: 0 },
         if (wormhole) {
           wormhole.rotation.z += 0.005;
         }
+         // Update annotations with current parameters
+// In geometry mode, after creating annotations
+if (annotationsRef.current) {
+  annotationsRef.current.createAnnotations(parameters);
+  console.log("Annotations created, children count:", annotationsRef.current.getChildrenCount());
+}
       } else if (renderMode === "raytraced") {
         const rayTracer = scene.getObjectByName("rayTracer");
         if (
@@ -563,6 +634,12 @@ material.uniforms.uAnimationPaused.value = advancedParams.animationPaused;
           material.uniforms.uM.value = parameters.M;
         }
       }
+
+      // Update star twinkling
+const stars = scene.getObjectByName('stars') as THREE.Points;
+if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms) {
+  (stars.material as THREE.ShaderMaterial).uniforms.uTime.value += 0.01;
+}
 
       renderer.render(scene, camera);
     };
@@ -729,7 +806,27 @@ material.uniforms.uAnimationPaused.value = advancedParams.animationPaused;
     <SliderThumb />
   </Slider>
 </div>
-
+<div>
+  <label className="block text-sm mb-2">Background Particles</label>
+  <Button
+    size="sm"
+    variant={advancedParams.showParticles ? 'default' : 'secondary'}
+    onClick={() => setAdvancedParams(prev => ({ ...prev, showParticles: !prev.showParticles }))}
+    className="w-full flex items-center gap-2 justify-center"
+  >
+    {advancedParams.showParticles ? (
+      <>
+        <CircleDot className="w-4 h-4" />
+        Hide Stars
+      </>
+    ) : (
+      <>
+        <MoonStarIcon className="w-4 h-4 rotate-6" />
+        Show Stars
+      </>
+    )}
+  </Button>
+</div>
 
              <div>
   <label className="block text-sm mb-2 flex justify-between">
@@ -882,13 +979,23 @@ material.uniforms.uAnimationPaused.value = advancedParams.animationPaused;
             <div>
   <label className="block text-sm mb-2">Time Control</label>
   <Button
-    size="sm"
-    variant={advancedParams.animationPaused ? 'secondary' : 'default'}
-    onClick={() => setAdvancedParams(prev => ({ ...prev, animationPaused: !prev.animationPaused }))}
-    className="w-full"
-  >
-    {advancedParams.animationPaused ? 'Start Time' : 'Stop Time'}
-  </Button>
+  size="sm"
+  variant={advancedParams.animationPaused ? 'secondary' : 'default'}
+  onClick={() => setAdvancedParams(prev => ({ ...prev, animationPaused: !prev.animationPaused }))}
+  className="w-full flex items-center gap-2 justify-center"
+>
+  {advancedParams.animationPaused ? (
+    <>
+      <Play className="w-4 h-4" />
+      Start Simulation
+    </>
+  ) : (
+    <>
+      <Pause className="w-4 h-4" />
+      Stop Simulation
+    </>
+  )}
+</Button>
 </div>
             <div>
   <label className="block text-sm mb-2 flex justify-between">
@@ -1144,6 +1251,10 @@ material.uniforms.uAnimationPaused.value = advancedParams.animationPaused;
           )}
         </div>
       </div>
+
+
+        {/* Music Controls - NEW shit */}
+      <MusicControls className="absolute bottom-14 right-4" />
     </div>
   );
 };
