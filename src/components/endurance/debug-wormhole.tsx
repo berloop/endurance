@@ -62,6 +62,10 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   const animationIdRef = useRef<number>();
   const annotationsRef = useRef<WormholeAnnotations | null>(null);
+  const [uiVisible, setUiVisible] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const uiSoundRef = useRef<HTMLAudioElement>(null);
+const [soundEnabled, setSoundEnabled] = useState(true);
 
   const [parameters, setParameters] = useState<WormholeParameters>({
     rho: 0.3,
@@ -70,7 +74,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
   });
 
   const [cameraPosition, setCameraPosition] = useState({
-    distance: 7.0,
+    distance: 8.0,
     theta: 0,
     phi: 0,
   });
@@ -92,7 +96,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
     rotationMode: 0,
     wormholeRadius: 0.6,
     animationPaused: false,
-    showParticles: true
+    showParticles: true,
   });
 
   const [textures, setTextures] = useState<{
@@ -256,7 +260,7 @@ const DebugWormhole: React.FC<{ className?: string }> = ({
             uCameraPos: { value: new THREE.Vector3() },
             uTime: { value: 0 },
             uAnimationPaused: { value: advancedParams.animationPaused },
-uPausedTime: { value: 0 },
+            uPausedTime: { value: 0 },
             // Advanced parameters
             uRotationSpeed: { value: advancedParams.rotationSpeed },
             uWarpingDistance: { value: advancedParams.warpingDistance },
@@ -281,42 +285,53 @@ uPausedTime: { value: 0 },
         const rayTracer = new THREE.Mesh(rayTracerGeometry, rayTracerMaterial);
         rayTracer.name = "rayTracer";
         scene.add(rayTracer);
-    
-// Let me add some hollywood stars...
-if (advancedParams.showParticles) {
-  const starGeometry = new THREE.BufferGeometry();
-  const starCount = 1000;
-  const starPositions = new Float32Array(starCount * 3);
-  const flickerData = new Float32Array(starCount);
-  const flickerSpeed = new Float32Array(starCount);
 
-  for (let i = 0; i < starCount; i++) {
-    // Create stars in a spherical shell, keeping them far from camera
-    const phi = Math.random() * Math.PI * 2;
-    const theta = Math.random() * Math.PI;
-    const minRadius = 50; // Minimum distance from center
-    const maxRadius = 80; // Maximum distance from center
-    const radius = minRadius + Math.random() * (maxRadius - minRadius);
-    
-    starPositions[i * 3] = radius * Math.sin(theta) * Math.cos(phi);
-    starPositions[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
-    starPositions[i * 3 + 2] = radius * Math.cos(theta);
-    
-    // Flicker attributes
-    flickerData[i] = Math.random() * Math.PI * 2; // Random phase
-    flickerSpeed[i] = 0.5 + Math.random() * 2.0; // Random speed
-  }
+        // Let me add some hollywood stars...
+        if (advancedParams.showParticles) {
+          const starGeometry = new THREE.BufferGeometry();
+          const starCount = 1000;
+          const starPositions = new Float32Array(starCount * 3);
+          const flickerData = new Float32Array(starCount);
+          const flickerSpeed = new Float32Array(starCount);
 
-  starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-  starGeometry.setAttribute('flickerData', new THREE.BufferAttribute(flickerData, 1));
-  starGeometry.setAttribute('flickerSpeed', new THREE.BufferAttribute(flickerSpeed, 1));
+          for (let i = 0; i < starCount; i++) {
+            // Create stars in a spherical shell, keeping them far from camera
+            const phi = Math.random() * Math.PI * 2;
+            const theta = Math.random() * Math.PI;
+            const minRadius = 50; // Minimum distance from center
+            const maxRadius = 80; // Maximum distance from center
+            const radius = minRadius + Math.random() * (maxRadius - minRadius);
 
-  // Create twinkling star material
-  const starMaterial = new THREE.ShaderMaterial(createTwinklingStarMaterial(0.4));
-  const stars = new THREE.Points(starGeometry, starMaterial);
-  stars.name = 'stars'; // For animation updates
-  scene.add(stars);
-}
+            starPositions[i * 3] = radius * Math.sin(theta) * Math.cos(phi);
+            starPositions[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
+            starPositions[i * 3 + 2] = radius * Math.cos(theta);
+
+            // Flicker attributes
+            flickerData[i] = Math.random() * Math.PI * 2; // Random phase
+            flickerSpeed[i] = 0.5 + Math.random() * 2.0; // Random speed
+          }
+
+          starGeometry.setAttribute(
+            "position",
+            new THREE.BufferAttribute(starPositions, 3)
+          );
+          starGeometry.setAttribute(
+            "flickerData",
+            new THREE.BufferAttribute(flickerData, 1)
+          );
+          starGeometry.setAttribute(
+            "flickerSpeed",
+            new THREE.BufferAttribute(flickerSpeed, 1)
+          );
+
+          // Create twinkling star material
+          const starMaterial = new THREE.ShaderMaterial(
+            createTwinklingStarMaterial(0.4)
+          );
+          const stars = new THREE.Points(starGeometry, starMaterial);
+          stars.name = "stars"; // For animation updates
+          scene.add(stars);
+        }
 
         (rayTracer as any).rayTracerMaterial = rayTracerMaterial;
       } else if (
@@ -439,7 +454,7 @@ if (advancedParams.showParticles) {
             64
           ),
           new THREE.MeshBasicMaterial({
-            color: 0x20B356,
+            color: 0x20b356,
             transparent: true,
             opacity: 0.8,
           })
@@ -481,47 +496,58 @@ if (advancedParams.showParticles) {
         group.add(particles);
 
         scene.add(group);
-         // Add mathematical annotations
-  if (!annotationsRef.current) {
-    annotationsRef.current = new WormholeAnnotations(scene);
-  }
-  annotationsRef.current.createAnnotations(parameters);
+        // Add mathematical annotations
+        if (!annotationsRef.current) {
+          annotationsRef.current = new WormholeAnnotations(scene);
+        }
+        annotationsRef.current.createAnnotations(parameters);
 
-         // Adding background stars for geometry mode..
-if (advancedParams.showParticles) {
-  const starGeometry = new THREE.BufferGeometry();
-  const starCount = 1000;
-  const starPositions = new Float32Array(starCount * 3);
-  const flickerData = new Float32Array(starCount);
-  const flickerSpeed = new Float32Array(starCount);
+        // Adding background stars for geometry mode..
+        if (advancedParams.showParticles) {
+          const starGeometry = new THREE.BufferGeometry();
+          const starCount = 1000;
+          const starPositions = new Float32Array(starCount * 3);
+          const flickerData = new Float32Array(starCount);
+          const flickerSpeed = new Float32Array(starCount);
 
-  for (let i = 0; i < starCount; i++) {
-    // Create stars in a spherical shell, keeping them far from camera
-    const phi = Math.random() * Math.PI * 2;
-    const theta = Math.random() * Math.PI;
-    const minRadius = 50; // Minimum distance from center
-    const maxRadius = 80; // Maximum distance from center
-    const radius = minRadius + Math.random() * (maxRadius - minRadius);
-    
-    starPositions[i * 3] = radius * Math.sin(theta) * Math.cos(phi);
-    starPositions[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
-    starPositions[i * 3 + 2] = radius * Math.cos(theta);
-    
-    // Flicker attributes
-    flickerData[i] = Math.random() * Math.PI * 2; // Random phase
-    flickerSpeed[i] = 0.5 + Math.random() * 2.0; // Random speed
-  }
+          for (let i = 0; i < starCount; i++) {
+            // Create stars in a spherical shell, keeping them far from camera
+            const phi = Math.random() * Math.PI * 2;
+            const theta = Math.random() * Math.PI;
+            const minRadius = 50; // Minimum distance from center
+            const maxRadius = 80; // Maximum distance from center
+            const radius = minRadius + Math.random() * (maxRadius - minRadius);
 
-  starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
-  starGeometry.setAttribute('flickerData', new THREE.BufferAttribute(flickerData, 1));
-  starGeometry.setAttribute('flickerSpeed', new THREE.BufferAttribute(flickerSpeed, 1));
+            starPositions[i * 3] = radius * Math.sin(theta) * Math.cos(phi);
+            starPositions[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
+            starPositions[i * 3 + 2] = radius * Math.cos(theta);
 
-  // Create twinkling star material
-  const starMaterial = new THREE.ShaderMaterial(createTwinklingStarMaterial(0.4));
-  const stars = new THREE.Points(starGeometry, starMaterial);
-  stars.name = 'stars'; // For animation updates
-  scene.add(stars);
-}
+            // Flicker attributes
+            flickerData[i] = Math.random() * Math.PI * 2; // Random phase
+            flickerSpeed[i] = 0.5 + Math.random() * 2.0; // Random speed
+          }
+
+          starGeometry.setAttribute(
+            "position",
+            new THREE.BufferAttribute(starPositions, 3)
+          );
+          starGeometry.setAttribute(
+            "flickerData",
+            new THREE.BufferAttribute(flickerData, 1)
+          );
+          starGeometry.setAttribute(
+            "flickerSpeed",
+            new THREE.BufferAttribute(flickerSpeed, 1)
+          );
+
+          // Create twinkling star material
+          const starMaterial = new THREE.ShaderMaterial(
+            createTwinklingStarMaterial(0.4)
+          );
+          const stars = new THREE.Points(starGeometry, starMaterial);
+          stars.name = "stars"; // For animation updates
+          scene.add(stars);
+        }
       }
     },
     [
@@ -535,6 +561,15 @@ if (advancedParams.showParticles) {
     ]
   );
 
+const toggleFullscreen = useCallback(async () => {
+  if (!document.fullscreenElement) {
+    await document.documentElement.requestFullscreen();
+    setIsFullscreen(true);
+  } else {
+    await document.exitFullscreen();
+    setIsFullscreen(false);
+  }
+}, []);
   // Initialize Three.js scene
   useEffect(() => {
     if (!mountRef.current) return;
@@ -560,9 +595,6 @@ if (advancedParams.showParticles) {
     mountRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    
- 
-
     createWormholeGeometry(scene);
     updateCameraPosition();
 
@@ -575,12 +607,15 @@ if (advancedParams.showParticles) {
         if (wormhole) {
           wormhole.rotation.z += 0.005;
         }
-         // Update annotations with current parameters
-// In geometry mode, after creating annotations
-if (annotationsRef.current) {
-  annotationsRef.current.createAnnotations(parameters);
-  console.log("Annotations created, children count:", annotationsRef.current.getChildrenCount());
-}
+        // Update annotations with current parameters
+        // In geometry mode, after creating annotations
+        if (annotationsRef.current) {
+          annotationsRef.current.createAnnotations(parameters);
+          console.log(
+            "Annotations created, children count:",
+            annotationsRef.current.getChildrenCount()
+          );
+        }
       } else if (renderMode === "raytraced") {
         const rayTracer = scene.getObjectByName("rayTracer");
         if (
@@ -593,10 +628,11 @@ if (annotationsRef.current) {
 
           // Only update time if not paused
           if (!advancedParams.animationPaused) {
-  material.uniforms.uTime.value += 0.02;
-  material.uniforms.uPausedTime.value = material.uniforms.uTime.value;
-}
-material.uniforms.uAnimationPaused.value = advancedParams.animationPaused;
+            material.uniforms.uTime.value += 0.02;
+            material.uniforms.uPausedTime.value = material.uniforms.uTime.value;
+          }
+          material.uniforms.uAnimationPaused.value =
+            advancedParams.animationPaused;
           material.uniforms.uCameraPos.value.copy(cameraRef.current.position);
           material.uniforms.uRho.value = parameters.rho;
           material.uniforms.uA.value = parameters.a;
@@ -636,10 +672,14 @@ material.uniforms.uAnimationPaused.value = advancedParams.animationPaused;
       }
 
       // Update star twinkling
-const stars = scene.getObjectByName('stars') as THREE.Points;
-if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms) {
-  (stars.material as THREE.ShaderMaterial).uniforms.uTime.value += 0.01;
-}
+      const stars = scene.getObjectByName("stars") as THREE.Points;
+      if (
+        stars &&
+        stars.material &&
+        (stars.material as THREE.ShaderMaterial).uniforms
+      ) {
+        (stars.material as THREE.ShaderMaterial).uniforms.uTime.value += 0.01;
+      }
 
       renderer.render(scene, camera);
     };
@@ -680,11 +720,38 @@ if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms
     updateCameraPosition();
   }, [updateCameraPosition]);
 
+  const playUISound = useCallback(() => {
+  if (soundEnabled && uiSoundRef.current) {
+    uiSoundRef.current.currentTime = 0; // Reset to start
+    uiSoundRef.current.volume = 0.3; // Moderate volume
+    uiSoundRef.current.play().catch(() => {
+      // Ignore audio play errors (common on first page load)
+    });
+  }
+}, [soundEnabled]);
+
+useEffect(() => {
+  const handleKeyPress = (event: KeyboardEvent) => {
+    if (event.key === 'h' || event.key === 'H') {
+      playUISound(); // Play sound first
+      setUiVisible(!uiVisible);
+    }
+    if (event.key === 'f' || event.key === 'F') {
+      playUISound(); // Play sound first
+      toggleFullscreen();
+    }
+  };
+
+  window.addEventListener('keydown', handleKeyPress);
+  return () => window.removeEventListener('keydown', handleKeyPress);
+}, [uiVisible, toggleFullscreen, playUISound]);
+
   return (
     <div className={`relative w-full h-full ${className}`}>
       <div ref={mountRef} className="w-full h-full" />
 
       {/* Parameter Controls */}
+      {uiVisible && (
       <div className="absolute top-4 left-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white max-w-xs max-h-[90vh] overflow-y-auto scrollbar-none">
         <h3 className="text-lg font-semibold mb-3">Wormhole Parameters</h3>
 
@@ -710,71 +777,68 @@ if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms
         </div>
 
         <div className="space-y-6">
-         <div>
-  <label className="block text-sm mb-2 flex justify-between">
-    <span>Radius (ρ):</span>
-    <span className="font-mono">{parameters.rho.toFixed(3)}</span>
-  </label>
-  <Slider
-    value={[parameters.rho]}
-    onValueChange={(value) =>
-      setParameters((prev) => ({ ...prev, rho: value[0] }))
-    }
-    min={0.3}
-    max={2.0}
-    step={0.01}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
+          <div>
+            <label className="block text-sm mb-2 flex justify-between">
+              <span>Radius (ρ):</span>
+              <span className="font-mono">{parameters.rho.toFixed(3)}</span>
+            </label>
+            <Slider
+              value={[parameters.rho]}
+              onValueChange={(value) =>
+                setParameters((prev) => ({ ...prev, rho: value[0] }))
+              }
+              min={0.3}
+              max={2.0}
+              step={0.01}
+            >
+              <SliderTrack>
+                <SliderRange />
+              </SliderTrack>
+              <SliderThumb />
+            </Slider>
+          </div>
 
+          <div>
+            <label className="block text-sm mb-2 flex justify-between">
+              <span>Length (2a):</span>
+              <span className="font-mono">{(2 * parameters.a).toFixed(3)}</span>
+            </label>
+            <Slider
+              value={[parameters.a]}
+              onValueChange={(value) =>
+                setParameters((prev) => ({ ...prev, a: value[0] }))
+              }
+              min={0.001}
+              max={1.0}
+              step={0.001}
+            >
+              <SliderTrack>
+                <SliderRange />
+              </SliderTrack>
+              <SliderThumb />
+            </Slider>
+          </div>
 
-         <div>
-  <label className="block text-sm mb-2 flex justify-between">
-    <span>Length (2a):</span>
-    <span className="font-mono">{(2 * parameters.a).toFixed(3)}</span>
-  </label>
-  <Slider
-    value={[parameters.a]}
-    onValueChange={(value) =>
-      setParameters((prev) => ({ ...prev, a: value[0] }))
-    }
-    min={0.001}
-    max={1.0}
-    step={0.001}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
-
-
-         <div>
-  <label className="block text-sm mb-2 flex justify-between">
-    <span>Lensing (M):</span>
-    <span className="font-mono">{parameters.M.toFixed(3)}</span>
-  </label>
-  <Slider
-    value={[parameters.M]}
-    onValueChange={(value) =>
-      setParameters((prev) => ({ ...prev, M: value[0] }))
-    }
-    min={0.01}
-    max={1.0}
-    step={0.01}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
-
+          <div>
+            <label className="block text-sm mb-2 flex justify-between">
+              <span>Lensing (M):</span>
+              <span className="font-mono">{parameters.M.toFixed(3)}</span>
+            </label>
+            <Slider
+              value={[parameters.M]}
+              onValueChange={(value) =>
+                setParameters((prev) => ({ ...prev, M: value[0] }))
+              }
+              min={0.01}
+              max={1.0}
+              step={0.01}
+            >
+              <SliderTrack>
+                <SliderRange />
+              </SliderTrack>
+              <SliderThumb />
+            </Slider>
+          </div>
 
           {/* Camera Controls */}
           <div className="pt-4 border-t border-gray-600">
@@ -784,73 +848,83 @@ if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms
 
             <div className="space-y-4">
               <div>
-  <label className="block text-sm mb-2 flex justify-between">
-    <span>Distance:</span>
-    <span className="font-mono">{cameraPosition.distance.toFixed(2)}</span>
-  </label>
-  <Slider
-    value={[cameraPosition.distance]}
-    onValueChange={(value) =>
-      setCameraPosition((prev) => ({
-        ...prev,
-        distance: value[0],
-      }))
-    }
-    min={1.5}
-    max={10}
-    step={0.1}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
-<div>
-  <label className="block text-sm mb-2">Background Particles</label>
-  <Button
-    size="sm"
-    variant={advancedParams.showParticles ? 'default' : 'secondary'}
-    onClick={() => setAdvancedParams(prev => ({ ...prev, showParticles: !prev.showParticles }))}
-    className="w-full flex items-center gap-2 justify-center"
-  >
-    {advancedParams.showParticles ? (
-      <>
-        <CircleDot className="w-4 h-4" />
-        Hide Stars
-      </>
-    ) : (
-      <>
-        <MoonStarIcon className="w-4 h-4 rotate-6" />
-        Show Stars
-      </>
-    )}
-  </Button>
-</div>
+                <label className="block text-sm mb-2 flex justify-between">
+                  <span>Distance:</span>
+                  <span className="font-mono">
+                    {cameraPosition.distance.toFixed(2)}
+                  </span>
+                </label>
+                <Slider
+                  value={[cameraPosition.distance]}
+                  onValueChange={(value) =>
+                    setCameraPosition((prev) => ({
+                      ...prev,
+                      distance: value[0],
+                    }))
+                  }
+                  min={1.5}
+                  max={10}
+                  step={0.1}
+                >
+                  <SliderTrack>
+                    <SliderRange />
+                  </SliderTrack>
+                  <SliderThumb />
+                </Slider>
+              </div>
+              <div>
+                <label className="block text-sm mb-2">
+                  Background Particles
+                </label>
+                <Button
+                  size="sm"
+                  variant={
+                    advancedParams.showParticles ? "default" : "secondary"
+                  }
+                  onClick={() =>
+                    setAdvancedParams((prev) => ({
+                      ...prev,
+                      showParticles: !prev.showParticles,
+                    }))
+                  }
+                  className="w-full flex items-center gap-2 justify-center"
+                >
+                  {advancedParams.showParticles ? (
+                    <>
+                      <CircleDot className="w-4 h-4" />
+                      Hide Stars
+                    </>
+                  ) : (
+                    <>
+                      <MoonStarIcon className="w-4 h-4 rotate-6" />
+                      Show Stars
+                    </>
+                  )}
+                </Button>
+              </div>
 
-             <div>
-  <label className="block text-sm mb-2 flex justify-between">
-    <span>Theta:</span>
-    <span className="font-mono">
-      {((cameraPosition.theta * 180) / Math.PI).toFixed(1)}°
-    </span>
-  </label>
-  <Slider
-    value={[cameraPosition.theta]}
-    onValueChange={(value) =>
-      setCameraPosition((prev) => ({ ...prev, theta: value[0] }))
-    }
-    min={0}
-    max={Math.PI}
-    step={0.01}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
-
+              <div>
+                <label className="block text-sm mb-2 flex justify-between">
+                  <span>Theta:</span>
+                  <span className="font-mono">
+                    {((cameraPosition.theta * 180) / Math.PI).toFixed(1)}°
+                  </span>
+                </label>
+                <Slider
+                  value={[cameraPosition.theta]}
+                  onValueChange={(value) =>
+                    setCameraPosition((prev) => ({ ...prev, theta: value[0] }))
+                  }
+                  min={0}
+                  max={Math.PI}
+                  step={0.01}
+                >
+                  <SliderTrack>
+                    <SliderRange />
+                  </SliderTrack>
+                  <SliderThumb />
+                </Slider>
+              </div>
             </div>
           </div>
         </div>
@@ -879,53 +953,56 @@ if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms
         {showAdvanced && (
           <div className="mt-4 space-y-6 border-t border-neutral-600 pt-4">
             <div>
-  <label className="block text-sm mb-2 flex justify-between">
-    <span>Rotation Speed:</span>
-    <span className="font-mono">{advancedParams.rotationSpeed.toFixed(2)}</span>
-  </label>
-  <Slider
-    value={[advancedParams.rotationSpeed]}
-    onValueChange={(value) =>
-      setAdvancedParams((prev) => ({
-        ...prev,
-        rotationSpeed: value[0],
-      }))
-    }
-    min={0}
-    max={1.0}
-    step={0.01}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
-
+              <label className="block text-sm mb-2 flex justify-between">
+                <span>Rotation Speed:</span>
+                <span className="font-mono">
+                  {advancedParams.rotationSpeed.toFixed(2)}
+                </span>
+              </label>
+              <Slider
+                value={[advancedParams.rotationSpeed]}
+                onValueChange={(value) =>
+                  setAdvancedParams((prev) => ({
+                    ...prev,
+                    rotationSpeed: value[0],
+                  }))
+                }
+                min={0}
+                max={1.0}
+                step={0.01}
+              >
+                <SliderTrack>
+                  <SliderRange />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+            </div>
 
             <div>
-  <label className="block text-sm mb-2 flex justify-between">
-    <span>Warping Distance:</span>
-    <span className="font-mono">{advancedParams.warpingDistance.toFixed(1)}</span>
-  </label>
-  <Slider
-    value={[advancedParams.warpingDistance]}
-    onValueChange={(value) =>
-      setAdvancedParams((prev) => ({
-        ...prev,
-        warpingDistance: value[0],
-      }))
-    }
-    min={0.1}
-    max={5.0}
-    step={0.1}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
+              <label className="block text-sm mb-2 flex justify-between">
+                <span>Warping Distance:</span>
+                <span className="font-mono">
+                  {advancedParams.warpingDistance.toFixed(1)}
+                </span>
+              </label>
+              <Slider
+                value={[advancedParams.warpingDistance]}
+                onValueChange={(value) =>
+                  setAdvancedParams((prev) => ({
+                    ...prev,
+                    warpingDistance: value[0],
+                  }))
+                }
+                min={0.1}
+                max={5.0}
+                step={0.1}
+              >
+                <SliderTrack>
+                  <SliderRange />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+            </div>
 
             <div>
               <label className="block text-sm mb-2">Rotation Mode</label>
@@ -977,284 +1054,322 @@ if (stars && stars.material && (stars.material as THREE.ShaderMaterial).uniforms
               </div>
             </div>
             <div>
-  <label className="block text-sm mb-2">Time Control</label>
-  <Button
-  size="sm"
-  variant={advancedParams.animationPaused ? 'secondary' : 'default'}
-  onClick={() => setAdvancedParams(prev => ({ ...prev, animationPaused: !prev.animationPaused }))}
-  className="w-full flex items-center gap-2 justify-center"
->
-  {advancedParams.animationPaused ? (
-    <>
-      <Play className="w-4 h-4" />
-      Start Simulation
-    </>
-  ) : (
-    <>
-      <Pause className="w-4 h-4" />
-      Stop Simulation
-    </>
-  )}
-</Button>
-</div>
+              <label className="block text-sm mb-2">Time Control</label>
+              <Button
+                size="sm"
+                variant={
+                  advancedParams.animationPaused ? "secondary" : "default"
+                }
+                onClick={() =>
+                  setAdvancedParams((prev) => ({
+                    ...prev,
+                    animationPaused: !prev.animationPaused,
+                  }))
+                }
+                className="w-full flex items-center gap-2 justify-center"
+              >
+                {advancedParams.animationPaused ? (
+                  <>
+                    <Play className="w-4 h-4" />
+                    Start Simulation
+                  </>
+                ) : (
+                  <>
+                    <Pause className="w-4 h-4" />
+                    Stop Simulation
+                  </>
+                )}
+              </Button>
+            </div>
             <div>
-  <label className="block text-sm mb-2 flex justify-between">
-    <span>Vignetting:</span>
-    <span className="font-mono">{advancedParams.wormholeRadius.toFixed(2)}</span>
-  </label>
-  <Slider
-    value={[advancedParams.wormholeRadius]}
-    onValueChange={(value) =>
-      setAdvancedParams((prev) => ({
-        ...prev,
-        wormholeRadius: value[0],
-      }))
-    }
-    min={0.1}
-    max={1.5}
-    step={0.01}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
-
-
-            <div>
-  <label className="block text-sm mb-2 flex justify-between">
-    <span>Einstein&apos;s Ring Radius:</span>
-    <span className="font-mono">{advancedParams.ringRadius.toFixed(2)}</span>
-  </label>
-  <Slider
-    value={[advancedParams.ringRadius]}
-    onValueChange={(value) =>
-      setAdvancedParams((prev) => ({
-        ...prev,
-        ringRadius: value[0],
-      }))
-    }
-    min={0.01}
-    max={1.0}
-    step={0.01}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
-
-
-           <div>
-  <label className="block text-sm mb-2 flex justify-between">
-    <span>Ring Sharpness:</span>
-    <span className="font-mono">{advancedParams.ringSharpness.toFixed(1)}</span>
-  </label>
-  <Slider
-    value={[advancedParams.ringSharpness]}
-    onValueChange={(value) =>
-      setAdvancedParams((prev) => ({
-        ...prev,
-        ringSharpness: value[0],
-      }))
-    }
-    min={25.0}
-    max={100.0}
-    step={0.5}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
-
-
-           <div>
-  <label className="block text-sm mb-2 flex justify-between">
-    <span>Ring Intensity:</span>
-    <span className="font-mono">{advancedParams.ringIntensity.toFixed(2)}</span>
-  </label>
-  <Slider
-    value={[advancedParams.ringIntensity]}
-    onValueChange={(value) =>
-      setAdvancedParams((prev) => ({
-        ...prev,
-        ringIntensity: value[0],
-      }))
-    }
-    min={0}
-    max={1.0}
-    step={0.01}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
-
-
-           <div>
-  <label className="block text-sm mb-2 flex justify-between">
-    <span>Zoom:</span>
-    <span className="font-mono">{advancedParams.zoom.toFixed(2)}</span>
-  </label>
-  <Slider
-    value={[advancedParams.zoom]}
-    onValueChange={(value) =>
-      setAdvancedParams((prev) => ({ ...prev, zoom: value[0] }))
-    }
-    min={1.5}
-    max={2.0}
-    step={0.01}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
-
+              <label className="block text-sm mb-2 flex justify-between">
+                <span>Vignetting:</span>
+                <span className="font-mono">
+                  {advancedParams.wormholeRadius.toFixed(2)}
+                </span>
+              </label>
+              <Slider
+                value={[advancedParams.wormholeRadius]}
+                onValueChange={(value) =>
+                  setAdvancedParams((prev) => ({
+                    ...prev,
+                    wormholeRadius: value[0],
+                  }))
+                }
+                min={0.1}
+                max={1.5}
+                step={0.01}
+              >
+                <SliderTrack>
+                  <SliderRange />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+            </div>
 
             <div>
-  <label className="block text-sm mb-2 flex justify-between">
-    <span>Max Steps:</span>
-    <span className="font-mono">{advancedParams.maxSteps}</span>
-  </label>
-  <Slider
-    value={[advancedParams.maxSteps]}
-    onValueChange={(value) =>
-      setAdvancedParams((prev) => ({ ...prev, maxSteps: value[0] }))
-    }
-    min={270}
-    max={400}
-    step={5}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
+              <label className="block text-sm mb-2 flex justify-between">
+                <span>Einstein&apos;s Ring Radius:</span>
+                <span className="font-mono">
+                  {advancedParams.ringRadius.toFixed(2)}
+                </span>
+              </label>
+              <Slider
+                value={[advancedParams.ringRadius]}
+                onValueChange={(value) =>
+                  setAdvancedParams((prev) => ({
+                    ...prev,
+                    ringRadius: value[0],
+                  }))
+                }
+                min={0.01}
+                max={1.0}
+                step={0.01}
+              >
+                <SliderTrack>
+                  <SliderRange />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+            </div>
 
+            <div>
+              <label className="block text-sm mb-2 flex justify-between">
+                <span>Ring Sharpness:</span>
+                <span className="font-mono">
+                  {advancedParams.ringSharpness.toFixed(1)}
+                </span>
+              </label>
+              <Slider
+                value={[advancedParams.ringSharpness]}
+                onValueChange={(value) =>
+                  setAdvancedParams((prev) => ({
+                    ...prev,
+                    ringSharpness: value[0],
+                  }))
+                }
+                min={25.0}
+                max={100.0}
+                step={0.5}
+              >
+                <SliderTrack>
+                  <SliderRange />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+            </div>
+
+            <div>
+              <label className="block text-sm mb-2 flex justify-between">
+                <span>Ring Intensity:</span>
+                <span className="font-mono">
+                  {advancedParams.ringIntensity.toFixed(2)}
+                </span>
+              </label>
+              <Slider
+                value={[advancedParams.ringIntensity]}
+                onValueChange={(value) =>
+                  setAdvancedParams((prev) => ({
+                    ...prev,
+                    ringIntensity: value[0],
+                  }))
+                }
+                min={0}
+                max={1.0}
+                step={0.01}
+              >
+                <SliderTrack>
+                  <SliderRange />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+            </div>
+
+            <div>
+              <label className="block text-sm mb-2 flex justify-between">
+                <span>Zoom:</span>
+                <span className="font-mono">
+                  {advancedParams.zoom.toFixed(2)}
+                </span>
+              </label>
+              <Slider
+                value={[advancedParams.zoom]}
+                onValueChange={(value) =>
+                  setAdvancedParams((prev) => ({ ...prev, zoom: value[0] }))
+                }
+                min={1.5}
+                max={2.0}
+                step={0.01}
+              >
+                <SliderTrack>
+                  <SliderRange />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+            </div>
+
+            <div>
+              <label className="block text-sm mb-2 flex justify-between">
+                <span>Max Steps:</span>
+                <span className="font-mono">{advancedParams.maxSteps}</span>
+              </label>
+              <Slider
+                value={[advancedParams.maxSteps]}
+                onValueChange={(value) =>
+                  setAdvancedParams((prev) => ({ ...prev, maxSteps: value[0] }))
+                }
+                min={270}
+                max={400}
+                step={5}
+              >
+                <SliderTrack>
+                  <SliderRange />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+            </div>
 
             {/* Ring Color Controls */}
+            {uiVisible && (
             <div className="space-y-4">
               <label className="block text-sm">Ring Color:</label>
-            <div>
-  <label className="block text-xs mb-1 flex justify-between text-neutral-400">
-    <span>Red:</span>
-    <span className="font-mono">{advancedParams.ringColor.r.toFixed(2)}</span>
-  </label>
-  <Slider
-    value={[advancedParams.ringColor.r]}
-    onValueChange={(value) =>
-      setAdvancedParams((prev) => ({
-        ...prev,
-        ringColor: { ...prev.ringColor, r: value[0] },
-      }))
-    }
-    min={0}
-    max={1.0}
-    step={0.01}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
+              <div>
+                <label className="block text-xs mb-1 flex justify-between text-neutral-400">
+                  <span>Red:</span>
+                  <span className="font-mono">
+                    {advancedParams.ringColor.r.toFixed(2)}
+                  </span>
+                </label>
+                <Slider
+                  value={[advancedParams.ringColor.r]}
+                  onValueChange={(value) =>
+                    setAdvancedParams((prev) => ({
+                      ...prev,
+                      ringColor: { ...prev.ringColor, r: value[0] },
+                    }))
+                  }
+                  min={0}
+                  max={1.0}
+                  step={0.01}
+                >
+                  <SliderTrack>
+                    <SliderRange />
+                  </SliderTrack>
+                  <SliderThumb />
+                </Slider>
+              </div>
 
               <div>
-  <label className="block text-xs mb-1 flex justify-between text-neutral-400">
-    <span>Green:</span>
-    <span className="font-mono">{advancedParams.ringColor.g.toFixed(2)}</span>
-  </label>
-  <Slider
-    value={[advancedParams.ringColor.g]}
-    onValueChange={(value) =>
-      setAdvancedParams((prev) => ({
-        ...prev,
-        ringColor: { ...prev.ringColor, g: value[0] },
-      }))
-    }
-    min={0}
-    max={1.0}
-    step={0.01}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
+                <label className="block text-xs mb-1 flex justify-between text-neutral-400">
+                  <span>Green:</span>
+                  <span className="font-mono">
+                    {advancedParams.ringColor.g.toFixed(2)}
+                  </span>
+                </label>
+                <Slider
+                  value={[advancedParams.ringColor.g]}
+                  onValueChange={(value) =>
+                    setAdvancedParams((prev) => ({
+                      ...prev,
+                      ringColor: { ...prev.ringColor, g: value[0] },
+                    }))
+                  }
+                  min={0}
+                  max={1.0}
+                  step={0.01}
+                >
+                  <SliderTrack>
+                    <SliderRange />
+                  </SliderTrack>
+                  <SliderThumb />
+                </Slider>
+              </div>
 
               <div>
-  <label className="block text-xs mb-1 flex justify-between text-gray-400">
-    <span>Blue:</span>
-    <span className="font-mono">{advancedParams.ringColor.b.toFixed(2)}</span>
-  </label>
-  <Slider
-    value={[advancedParams.ringColor.b]}
-    onValueChange={(value) =>
-      setAdvancedParams((prev) => ({
-        ...prev,
-        ringColor: { ...prev.ringColor, b: value[0] },
-      }))
-    }
-    min={0}
-    max={1.0}
-    step={0.01}
-  >
-    <SliderTrack>
-      <SliderRange />
-    </SliderTrack>
-    <SliderThumb />
-  </Slider>
-</div>
-
+                <label className="block text-xs mb-1 flex justify-between text-gray-400">
+                  <span>Blue:</span>
+                  <span className="font-mono">
+                    {advancedParams.ringColor.b.toFixed(2)}
+                  </span>
+                </label>
+                <Slider
+                  value={[advancedParams.ringColor.b]}
+                  onValueChange={(value) =>
+                    setAdvancedParams((prev) => ({
+                      ...prev,
+                      ringColor: { ...prev.ringColor, b: value[0] },
+                    }))
+                  }
+                  min={0}
+                  max={1.0}
+                  step={0.01}
+                >
+                  <SliderTrack>
+                    <SliderRange />
+                  </SliderTrack>
+                  <SliderThumb />
+                </Slider>
+              </div>
             </div>
+              )}
           </div>
+          
         )}
 
-       <div className="mt-3 pt-2 border-t border-neutral-600 text-xs text-neutral-400 flex justify-between">
-  <div>
-    L-Width: <span className="font-mono">{(1.42953 * parameters.M).toFixed(3)} m</span>
-  </div>
-  <div>
-    T-Area: <span className="font-mono">{(4 * Math.PI * parameters.rho * parameters.rho).toFixed(2)} m²</span>
-  </div>
-</div>
-
-
-      </div>
-
-      {/* Status Display */}
-      <div className="absolute top-4 right-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white">
-        <div className="text-xs space-y-1">
-          {renderMode === "geodesic" ? (
-            <div className="flex items-center text-purple-400 gap-2">
-              {/* I am no longer using Geodesic rendermode, it was not unnecessary.. */}
-              <BoxIcon className="w-4 h-4" /> Geodesic Integration
-            </div>
-          ) : renderMode === "raytraced" ? (
-            <div className="flex items-center text-green-500 gap-2">
-              <CircleDot className="w-2 h-2 animate-ping" /> Ray Tracing Active.
-            </div>
-          ) : (
-            <div className="flex items-center text-green-500 gap-2">
-              <Disc3Icon className="w-4 h-4 animate-spin" /> Geometry Mode
-            </div>
-          )}
+        <div className="mt-3 pt-2 border-t border-neutral-600 text-xs text-neutral-400 flex justify-between">
+          <div>
+            L-Width:{" "}
+            <span className="font-mono">
+              {(1.42953 * parameters.M).toFixed(3)} m
+            </span>
+          </div>
+          <div>
+            T-Area:{" "}
+            <span className="font-mono">
+              {(4 * Math.PI * parameters.rho * parameters.rho).toFixed(2)} m²
+            </span>
+          </div>
         </div>
       </div>
+      )}
 
+     {/* Status Display */}
+{uiVisible && (
+  <div className="absolute top-4 right-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white">
+    <div className="text-xs space-y-1">
+      {renderMode === "geodesic" ? (
+        <div className="flex items-center text-purple-400 gap-2">
+          {/* I am no longer using Geodesic rendermode tab, it was not unnecessary.. */}
+          <BoxIcon className="w-4 h-4" /> Geodesic Integration
+        </div>
+      ) : renderMode === "raytraced" ? (
+        <div className="flex items-center text-green-500 gap-2">
+          <CircleDot className="w-2 h-2 animate-ping" /> Ray Tracing Active.
+        </div>
+      ) : (
+        <div className="flex items-center text-green-500 gap-2">
+          <Disc3Icon className="w-4 h-4 animate-spin" /> Geometry Mode
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
-        {/* Music Controls - NEW shit */}
-      <MusicControls className="absolute bottom-14 right-4" />
+      {/* Music Controls - NEW shit */}
+      {uiVisible && (
+      <MusicControls className="absolute bottom-14 right-4 hidden md:block" />
+      
+)}
+
+{/* Toggle hint - always visible */}
+<div className="md:block hidden absolute bottom-4 left-4 text-white text-xs opacity-50 pointer-events-none">
+  Press &apos;H&apos; to {uiVisible ? 'hide' : 'show'} UI | Press &lsquo;F&lsquo; for fullscreen
+</div>
+
+{/* UI Sound Effect - HIDDEN */}
+<audio ref={uiSoundRef} preload="auto">
+  <source src="/sounds/ui-click.mp3" type="audio/mpeg" />
+</audio>
     </div>
   );
 };

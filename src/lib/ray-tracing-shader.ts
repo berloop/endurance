@@ -1,5 +1,24 @@
 // lib/ray-tracing-shader.ts
 
+/**
+ * Wormhole Ray Tracing Shader written by Egret.
+ *
+ * Based directly on the equations from
+ * “Visualizing Interstellar’s Wormhole” 
+ * by Kip Thorne, Oliver James, Eugénie von Tunzelmann & Paul Franklin.
+ *
+ * This shader performs real-time ray tracing through a wormhole’s
+ * curved spacetime, reproducing gravitational lensing and the
+ * Einstein ring phenomenon. It exposes advanced parameters —
+ * including ring color, sharpness, radius, intensity, and multiple
+ * rotation modes — giving both scientific accuracy and creative
+ * flexibility. 
+ *
+ * A personal milestone: blending physics and rendering into an
+ * interactive, cinematic visualization I’m genuinely proud of.
+ */
+
+
 export const rayTracingVertexShader = `
   varying vec2 vUv;
   varying vec3 vWorldPosition;

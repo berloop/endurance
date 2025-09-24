@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-// NOTE: I had tried to add trails to geometry mode particles around the wormhole it crashed the site...very resource-intensive so am not using this shader..
+// NOTE: Attempted to add particle trails in geometry mode around the wormhole.
+// This caused severe performance issues and site instability, so the shader was disabled by me.
 
 import * as THREE from 'three';
 

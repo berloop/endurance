@@ -1,4 +1,30 @@
 // lib/star-shader.ts
+
+/**
+ * Star Shader by Egret.
+ * 
+ * This shader simulates twinkling stars in a 3D scene.
+ * 
+ * Vertex Shader:
+ * - Uses `flickerData` and `flickerSpeed` attributes to create a sinusoidal twinkling effect.
+ * - Computes `vAlpha` to vary each star's opacity over time (0.2 to 1.0).
+ * - Sets point size with distance-based scaling to simulate depth perspective.
+ * 
+ * Fragment Shader:
+ * - Renders each star as a circular point with soft edges.
+ * - Applies `vAlpha` from the vertex shader to modulate twinkling intensity.
+ * - Discards fragments outside the circular area to maintain a round star shape.
+ * 
+ * Material Helper:
+ * - `createTwinklingStarMaterial(size)` returns a shader material with additive blending for glowing stars.
+ * - Transparent with depthWrite disabled, so stars can overlap naturally.
+ * 
+ * Usage:
+ * - Ideal for creating a dynamic, realistic starfield in Three.js.
+ * - Update `uTime` uniform each frame to animate the twinkling.
+ */
+
+
 import * as THREE from 'three';
 
 export const starVertexShader = `

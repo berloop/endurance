@@ -1,0 +1,1 @@
+declare module 'react-h5-audio-player/lib/styles.css';
