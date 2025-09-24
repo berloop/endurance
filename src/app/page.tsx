@@ -40,13 +40,13 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadComplete }) => {
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="flex items-center gap-2 mb-4"
+        className="flex items-center gap-2 mb-2"
       >
-        <h1 className="text-4xl text-white">Endurance</h1>
+        <h1 className="text-xl text-white">Endurance OS</h1>
       </motion.div>
 
       {/* Progress Bar */}
-      <div className="w-80 bg-neutral-800 rounded-full h-1.5 mb-4">
+      <div className="w-60 bg-neutral-800 rounded-full h-1.5 mb-4">
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
@@ -60,7 +60,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadComplete }) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="text-white text-lg"
+        className="text-white text-xs"
       >
         {progress}%
       </motion.div>

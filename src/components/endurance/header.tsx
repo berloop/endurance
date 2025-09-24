@@ -32,9 +32,9 @@ const Header = () => {
       <Tooltip>
         <TooltipTrigger asChild>
           <Link href="/" className="flex items-center">
-            <h1 className="text-xl md:text-2xl font-light text-white hover:text-gray-300 transition-colors tracking-tighter">
+            <h1 className="text-xl md:text-xl font-light text-white hover:text-gray-300 transition-colors tracking-tighter">
               Project <span className="uppercase text-md">L.a.z.a.r.u.s</span>{" "}
-              <span className="text-xs md:text-sm text-neutral-400">by Egret</span>
+              <span className="text-xs md:text-sm text-neutral-400 tracking-tight">by Egret.</span>
             </h1>
           </Link>
         </TooltipTrigger>
