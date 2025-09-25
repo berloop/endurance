@@ -3,12 +3,10 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-
 import Link from "next/link";
 import Header from "@/components/endurance/header";
-import MainWormhole from "@/components/endurance/main-wormhole";
-
-
+import MainBlackHole from "@/components/endurance/main-blackhole";
+// import MainBlackHole from "@/components/endurance/main-blackhole";
 
 // Loading Screen Component
 interface LoadingScreenProps {
@@ -68,7 +66,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadComplete }) => {
   );
 };
 
-export default function Home() {
+export default function BlackHolePage() {
   const [isLoading, setIsLoading] = useState(true);
 
   if (isLoading) {
@@ -87,27 +85,25 @@ export default function Home() {
         transition={{ duration: 1, delay: 0.2 }}
         className="absolute inset-0 pt-20"
       >
-        {/* <RayTracingWormhole className="w-full h-full" /> */}
-        <MainWormhole className="w-full h-full" />
-
+        <MainBlackHole className="w-full h-full" />
       </motion.div>
 
       {/* Footer Info */}
-   <motion.div
-  initial={{ opacity: 0 }}
-  animate={{ opacity: 1 }}
-  transition={{ duration: 0.8, delay: 0.5 }}
-  className="absolute bottom-4 right-4 md:right-4 left-4 md:left-auto z-10 text-xs text-gray-500 text-center md:text-right"
->
-  <Link 
-    href="https://pubs.aip.org/aapt/ajp/article/83/6/486/1057802/Visualizing-Interstellar-s-Wormhole"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="underline-none hover:text-gray-400 transition-colors"
-  >
-    Based on a research paper &quot;Visualizing Interstellar&apos;s Wormhole&quot; by James, von Tunzelmann, Franklin & Thorne
-  </Link>
-</motion.div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8, delay: 0.5 }}
+        className="absolute bottom-4 right-4 md:right-4 left-4 md:left-auto z-10 text-xs text-gray-500 text-center md:text-right"
+      >
+        <Link 
+          href="https://iopscience.iop.org/article/10.1088/0264-9381/32/6/065001"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline-none hover:text-gray-400 transition-colors"
+        >
+          Based on research paper &quot;Gravitational lensing by spinning black holes in astrophysics, and in the movie Interstellar&quot; by James et al.
+        </Link>
+      </motion.div>
     </main>
   );
 }

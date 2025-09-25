@@ -35,6 +35,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 
 
+
 interface WormholeParameters {
   rho: number; // Wormhole radius (ρ)
   a: number; // Half-length of cylindrical interior
@@ -57,7 +58,7 @@ interface AdvancedParameters {
   showEndurance: boolean;
 }
 
-const DebugWormhole: React.FC<{ className?: string }> = ({
+const MainWormhole: React.FC<{ className?: string }> = ({
   className = "",
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -1172,8 +1173,8 @@ useEffect(() => {
                     wormholeRadius: value[0],
                   }))
                 }
-                min={0.1}
-                max={1.5}
+                min={0.03}
+                max={0.3}
                 step={0.01}
               >
                 <SliderTrack>
@@ -1484,4 +1485,4 @@ useEffect(() => {
   );
 };
 
-export default DebugWormhole;
+export default MainWormhole;

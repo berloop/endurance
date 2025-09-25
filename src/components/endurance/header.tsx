@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Menu, X } from 'lucide-react'
+import { Github, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { TooltipProvider } from '@radix-ui/react-tooltip'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
@@ -72,6 +72,30 @@ const Header = () => {
               )}
             </Link>
           ))}
+  
+ {/* GitHub Link */}
+<Tooltip>
+  <TooltipTrigger asChild>
+    
+     <a href="https://github.com/berloop/endurance.git"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-gray-400 hover:text-white transition-colors"
+      aria-label="View on GitHub"
+    >
+      <Github className="w-5 h-5" />
+    </a>
+  </TooltipTrigger>
+  <TooltipContent
+    side="bottom"
+    align="center"
+    className="bg-black text-white px-3 py-1.5 rounded-md shadow-lg text-xs"
+  >
+    View Source Code
+  </TooltipContent>
+</Tooltip>
+
+          
         </nav>
 
         {/* Mobile Menu Button */}
