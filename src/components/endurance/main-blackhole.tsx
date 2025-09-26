@@ -1,5 +1,4 @@
 // components/blackhole/main-blackhole.tsx
-
 "use client";
 
 import { SliderRange, SliderThumb, SliderTrack } from "@radix-ui/react-slider";
@@ -8,6 +7,7 @@ import React, { useRef, useEffect, useState } from "react";
 import * as THREE from "three";
 import { Slider } from "../ui/slider";
 import { Button } from "../ui/button";
+import { Checkbox } from "../ui/checkbox";
 import { AnimatePresence, motion } from "framer-motion";
 
 const fragmentShader = `
@@ -54,7 +54,8 @@ vec2 to_spherical(vec3 cartesian_coord){
 
 vec3 lorentz_transform_velocity(vec3 u, vec3 v){
   float speed = length(v);
-  if (speed > 0.0){float gamma = 1.0/sqrt(1.0-dot(v,v));
+  if (speed > 0.0){
+    float gamma = 1.0/sqrt(1.0-dot(v,v));
     float denominator = 1.0 - dot(v,u);
     vec3 new_u = (u/gamma - v + (gamma/(gamma+1.0)) * dot(u,v)*v)/denominator;
     return new_u;
@@ -182,7 +183,6 @@ void main() {
     ray_dir = normalize(point - oldpoint);
     vec2 tex_coord = to_spherical(ray_dir * ROT_Z(45.0 * DEG_TO_RAD));
     
-    // Star texture with encoded data
     vec4 star_color = texture2D(star_texture, tex_coord);
     if (star_color.g > 0.0){
       float star_temperature = (MIN_TEMPERATURE + TEMPERATURE_RANGE*star_color.r);
@@ -210,6 +210,8 @@ void main() {
 
 const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => {
   const mountRef = useRef<HTMLDivElement>(null);
+  const materialRef = useRef<THREE.ShaderMaterial>();
+  
   const [uiVisible, setUiVisible] = useState(true);
   const [fps, setFps] = useState(60);
   const frameTimeRef = useRef(performance.now());
@@ -227,7 +229,7 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
     doppler: true,
     beaming: true,
     disc: true,
-    useTexture: true, // Enable texture by default
+    useTexture: true,
   });
 
   useEffect(() => {
@@ -241,13 +243,11 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
     renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
     mountRef.current.appendChild(renderer.domElement);
 
-    // Load actual textures
     const textureLoader = new THREE.TextureLoader();
-    const bgTexture = textureLoader.load('/blackhole/milkyway.jpg');
-    const starTexture = textureLoader.load('/blackhole/star_noise.png');
-    const discTexture = textureLoader.load('/blackhole/accretion_disk.png');
+    const bgTexture = textureLoader.load('/blackhole/galaxy_05.jpg');
+    const starTexture = textureLoader.load('/blackhole/galaxy_05.jpg');
+    const discTexture = textureLoader.load('/blackhole/accretion_disk_monochrome.png');
 
-    // Configure textures
     [bgTexture, starTexture, discTexture].forEach(tex => {
       tex.minFilter = THREE.LinearFilter;
       tex.magFilter = THREE.LinearFilter;
@@ -274,7 +274,7 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
         cam_pos: { value: new THREE.Vector3() },
         cam_dir: { value: new THREE.Vector3(0, 0, -1) },
         cam_up: { value: new THREE.Vector3(0, 1, 0) },
-        fov: { value: 90 },
+        fov: { value: 75 },
         cam_vel: { value: new THREE.Vector3() },
         accretion_disk: { value: true },
         use_disk_texture: { value: true },
@@ -286,6 +286,7 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
         disk_texture: { value: discTexture },
       },
     });
+    materialRef.current = material;
 
     const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
     scene.add(mesh);
@@ -327,11 +328,6 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
       material.uniforms.cam_dir.value.copy(dir);
       material.uniforms.cam_up.value.copy(up);
       material.uniforms.cam_vel.value.copy(vel);
-      material.uniforms.accretion_disk.value = physics.disc;
-      material.uniforms.use_disk_texture.value = physics.useTexture;
-      material.uniforms.doppler_shift.value = physics.doppler;
-      material.uniforms.lorentz_transform.value = physics.lorentz;
-      material.uniforms.beaming.value = physics.beaming;
 
       renderer.render(scene, camera);
     };
@@ -351,9 +347,36 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
         mountRef.current.removeChild(renderer.domElement);
       }
       renderer.dispose();
-      material.dispose();
     };
+  }, []);
+
+  // Update quality
+  useEffect(() => {
+    if (materialRef.current) {
+      const getDefines = (q: string) => {
+        const configs = {
+          low: { STEP: 0.1, NSTEPS: 300 },
+          medium: { STEP: 0.05, NSTEPS: 600 },
+          high: { STEP: 0.02, NSTEPS: 1000 },
+        };
+        const config = configs[q as keyof typeof configs];
+        return `#define STEP ${config.STEP}\n#define NSTEPS ${config.NSTEPS}\n`;
+      };
+      materialRef.current.fragmentShader = getDefines(quality) + fragmentShader;
+      materialRef.current.needsUpdate = true;
+    }
   }, [quality]);
+
+  // Update physics
+  useEffect(() => {
+    if (materialRef.current) {
+      materialRef.current.uniforms.accretion_disk.value = physics.disc;
+      materialRef.current.uniforms.use_disk_texture.value = physics.useTexture;
+      materialRef.current.uniforms.doppler_shift.value = physics.doppler;
+      materialRef.current.uniforms.lorentz_transform.value = physics.lorentz;
+      materialRef.current.uniforms.beaming.value = physics.beaming;
+    }
+  }, [physics]);
 
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -373,7 +396,7 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="absolute top-4 left-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white max-w-xs"
+            className="absolute top-4 left-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white max-w-xs max-h-[90vh] overflow-y-auto"
           >
             <h3 className="text-lg font-semibold mb-3">Schwarzschild Black Hole</h3>
 
@@ -436,15 +459,14 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
                     disc: "Accretion Disc",
                     useTexture: "Use Disc Texture",
                   }).map(([key, label]) => (
-                    <Button
-                      key={key}
-                      size="sm"
-                      variant={physics[key as keyof typeof physics] ? "default" : "secondary"}
-                      onClick={() => setPhysics((p) => ({ ...p, [key]: !p[key as keyof typeof p] }))}
-                      className="w-full"
-                    >
-                      {label}
-                    </Button>
+                    <div key={key} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={key}
+                        checked={physics[key as keyof typeof physics]} 
+                        onCheckedChange={(c) => setPhysics(p => ({ ...p, [key]: c }))} 
+                      />
+                      <label htmlFor={key} className="text-sm cursor-pointer">{label}</label>
+                    </div>
                   ))}
                 </div>
               )}
