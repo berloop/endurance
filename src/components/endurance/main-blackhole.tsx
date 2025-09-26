@@ -15,6 +15,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { createTwinklingStarMaterial } from "@/lib/star-shader";
 import MusicControls from "./music-controls";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 const fragmentShader = `
 #define PI 3.141592653589793238462643383279
@@ -29,6 +30,7 @@ uniform vec3 cam_dir;
 uniform vec3 cam_up;
 uniform float fov;
 uniform vec3 cam_vel;
+uniform vec3 disk_color_tint;
 
 const float MIN_TEMPERATURE = 1000.0;
 const float TEMPERATURE_RANGE = 39000.0;
@@ -158,28 +160,42 @@ void main() {
         if (DISK_IN <= r && r <= DISK_IN+DISK_WIDTH){
           float phi = atan(intersection.x, intersection.z);
           vec3 disk_velocity = vec3(-intersection.x, 0.0, intersection.z)/sqrt(2.0*(r-1.0))/(r*r);
-          phi -= time;
+          phi -= time * 0.2; //this controls how fast or slow the plasma goes around the disk.
           phi = mod(phi, PI*2.0);
           float disk_gamma = 1.0/sqrt(1.0-dot(disk_velocity, disk_velocity));
           float disk_doppler_factor = disk_gamma*(1.0+dot(ray_dir/distance, disk_velocity));
           
           if (use_disk_texture){
-            vec2 tex_coord = vec2(mod(phi,2.0*PI)/(2.0*PI), 1.0-(r-DISK_IN)/(DISK_WIDTH));
-            vec4 disk_color = texture2D(disk_texture, tex_coord) / (ray_doppler_factor * disk_doppler_factor);
-            float disk_alpha = clamp(dot(disk_color,disk_color)/4.5, 0.0, 1.0);
-            if (beaming)
-              disk_alpha /= pow(disk_doppler_factor, 3.0);
-            color += vec4(disk_color)*disk_alpha;
-          } else {
-            float disk_temperature = 10000.0*(pow(r/DISK_IN, -3.0/4.0));
-            if (doppler_shift)
-              disk_temperature /= ray_doppler_factor*disk_doppler_factor;
-            vec3 disk_color = temp_to_color(disk_temperature);
-            float disk_alpha = clamp(dot(disk_color,disk_color)/3.0, 0.0, 1.0);
-            if (beaming)
-              disk_alpha /= pow(disk_doppler_factor, 3.0);
-            color += vec4(disk_color, 1.0)*disk_alpha;
-          }
+  vec2 tex_coord = vec2(mod(phi,2.0*PI)/(2.0*PI), 1.0-(r-DISK_IN)/(DISK_WIDTH));
+  
+  // Calculate temperature gradient based on radius
+  float temp_factor = 1.0 - ((r - DISK_IN) / DISK_WIDTH);
+  temp_factor = pow(temp_factor, 0.5);
+  
+  // Hot inner (blue-white) to cool outer (orange-red)
+  vec3 hot_color = vec3(0.7, 0.8, 1.0);
+  vec3 cool_color = vec3(1.0, 0.6, 0.3);
+  vec3 gradient_tint = mix(cool_color, hot_color, temp_factor);
+  
+  // Combine with user's temperature slider
+  vec3 final_tint = disk_color_tint * gradient_tint;
+  
+  vec4 disk_color = texture2D(disk_texture, tex_coord) * vec4(final_tint, 1.0) / (ray_doppler_factor * disk_doppler_factor);
+  float disk_alpha = clamp(dot(disk_color,disk_color)/4.5, 0.0, 1.0);
+  if (beaming)
+    disk_alpha /= pow(disk_doppler_factor, 3.0);
+  color += vec4(disk_color)*disk_alpha;
+} else {
+  // Keep your existing else block unchanged
+  float disk_temperature = 10000.0*(pow(r/DISK_IN, -3.0/4.0));
+  if (doppler_shift)
+    disk_temperature /= ray_doppler_factor*disk_doppler_factor;
+  vec3 disk_color = temp_to_color(disk_temperature);
+  float disk_alpha = clamp(dot(disk_color,disk_color)/3.0, 0.0, 1.0);
+  if (beaming)
+    disk_alpha /= pow(disk_doppler_factor, 3.0);
+  color += vec4(disk_color, 1.0)*disk_alpha;
+}
         }
       }
     }
@@ -224,17 +240,18 @@ const cameraRef = useRef<THREE.PerspectiveCamera>();
 
  // Adding refs at the top with other refs
 const distanceRef = useRef(10.0);
-const thetaRef = useRef(0);
-const inclineRef = useRef(-5 * Math.PI / 180);
+const thetaRef = useRef((45 * Math.PI) / 180);
+const inclineRef = useRef((10 * Math.PI) / 180);
 const orbitRef = useRef(false);
 
 // Keep the state (for UI display)
 const [distance, setDistance] = useState(10.0);
-const [theta, setTheta] = useState(0);
-const [incline, setIncline] = useState(-5 * Math.PI / 180);
+const [theta, setTheta] = useState((45 * Math.PI) / 180);
+const [incline, setIncline] = useState((10 * Math.PI) / 180);
   
-  const [fov, setFov] = useState(75);
+  const [fov, setFov] = useState(67);
   const [orbit, setOrbit] = useState(false);
+  const [diskTemperature, setDiskTemperature] = useState(6500); // Kelvin, default warm white
   
   const [showPerformance, setShowPerformance] = useState(false);
   const [showBloom, setShowBloom] = useState(false);
@@ -376,12 +393,13 @@ cameraRef.current = camera;
         cam_pos: { value: new THREE.Vector3() },
         cam_dir: { value: new THREE.Vector3(0, 0, -1) },
         cam_up: { value: new THREE.Vector3(0, 1, 0) },
-        fov: { value: fov },
+        fov: { value: 67 },
         cam_vel: { value: new THREE.Vector3() },
         accretion_disk: { value: true },
         use_disk_texture: { value: true },
         doppler_shift: { value: true },
         lorentz_transform: { value: true },
+        disk_color_tint: { value: new THREE.Color(1, 1, 1) },
         beaming: { value: true },
         bg_texture: { value: bgTexture },
         star_texture: { value: starTexture },
@@ -489,6 +507,8 @@ if (starsObj?.material) {
       composer.render();
     };
     animate();
+    
+
 
    const handleResize = () => {
   if (!mountRef.current) return;
@@ -545,6 +565,13 @@ if (starsObj?.material) {
     }
   }, [physics]);
 
+  useEffect(() => {
+  if (materialRef.current) {
+    const color = kelvinToRGB(diskTemperature);
+    materialRef.current.uniforms.disk_color_tint.value.copy(color);
+  }
+}, [diskTemperature]);
+
 // Update bloom in real-time
 useEffect(() => {
   if (bloomPassRef.current) {
@@ -581,6 +608,29 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [uiVisible, toggleFullscreen, playUISound]);
 
+  const kelvinToRGB = (kelvin: number) => {
+  const temp = kelvin / 100;
+  let r, g, b;
+
+  if (temp <= 66) {
+    r = 255;
+    g = Math.min(255, Math.max(0, 99.4708025861 * Math.log(temp) - 161.1195681661));
+  } else {
+    r = Math.min(255, Math.max(0, 329.698727446 * Math.pow(temp - 60, -0.1332047592)));
+    g = Math.min(255, Math.max(0, 288.1221695283 * Math.pow(temp - 60, -0.0755148492)));
+  }
+
+  if (temp >= 66) {
+    b = 255;
+  } else if (temp <= 19) {
+    b = 0;
+  } else {
+    b = Math.min(255, Math.max(0, 138.5177312231 * Math.log(temp - 10) - 305.0447927307));
+  }
+
+  return new THREE.Color(r / 255, g / 255, b / 255);
+};
+
   return (
     <div className={`relative w-full h-full ${className}`}>
       <div ref={mountRef} className="w-full h-full" />
@@ -591,7 +641,7 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="absolute top-4 left-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white max-w-xs max-h-[90vh] overflow-y-auto scrollbar-thin"
+            className="absolute top-4 left-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white max-w-xs max-h-[90vh] overflow-y-auto scrollbar-none"
           >
             <h3 className="text-lg font-semibold mb-3">Schwarzschild Black Hole</h3>
 
@@ -605,19 +655,26 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
               {showPerformance && (
                 <div className="space-y-3 pl-2">
                   <div>
-                    <label className="block text-sm mb-2">Resolution: {resolution}</label>
-                    <select 
-                      value={resolution}
-                      onChange={(e) => { playUISound(); setResolution(Number(e.target.value)); }}
-                      className="w-full bg-neutral-800 rounded p-1 text-sm"
-                    >
-                      <option value={0.25}>0.25</option>
-                      <option value={0.5}>0.5</option>
-                      <option value={1.0}>1.0</option>
-                      <option value={2.0}>2.0</option>
-                      <option value={4.0}>4.0</option>
-                    </select>
-                  </div>
+  <label className="block text-sm mb-2">Resolution: {resolution}</label>
+  <Select 
+    value={resolution.toString()} 
+    onValueChange={(value) => { 
+      playUISound(); 
+      setResolution(Number(value)); 
+    }}
+  >
+    <SelectTrigger className="w-full bg-neutral-800 border-neutral-700 text-sm h-8">
+      <SelectValue />
+    </SelectTrigger>
+    <SelectContent className="bg-neutral-800 border-neutral-700">
+      <SelectItem value="0.25">0.25x</SelectItem>
+      <SelectItem value="0.5">0.5x</SelectItem>
+      <SelectItem value="1.0">1.0x</SelectItem>
+      <SelectItem value="2.0">2.0x</SelectItem>
+      <SelectItem value="4.0">4.0x</SelectItem>
+    </SelectContent>
+  </Select>
+</div>
                   <div>
                     <label className="block text-sm mb-2">Quality:</label>
                     <div className="flex gap-2">
@@ -669,7 +726,27 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
                       <SliderThumb />
                     </Slider>
                   </div>
+                  <div>
+      <label className="block text-sm mb-2 flex justify-between">
+        <span>Disk Temperature:</span>
+        <span className="font-mono">{diskTemperature}K</span>
+      </label>
+      <Slider 
+        value={[diskTemperature]} 
+        onValueChange={(v) => { 
+          playUISound(); 
+          setDiskTemperature(v[0]); 
+        }} 
+        min={3000} 
+        max={12000} 
+        step={100}
+      >
+        <SliderTrack><SliderRange /></SliderTrack>
+        <SliderThumb />
+      </Slider>
+    </div>
                 </div>
+                
               )}
 
               {/* Observer */}
@@ -679,7 +756,7 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
                     <span>Distance:</span>
                     <span className="font-mono">{distance.toFixed(1)}M</span>
                   </label>
-                  <Slider value={[distance]} onValueChange={(v) => { playUISound(); setDistance(v[0]); }} min={2} max={14} step={0.5}>
+                  <Slider value={[distance]} onValueChange={(v) => { playUISound(); setDistance(v[0]); }} min={7} max={14} step={0.5}>
                     <SliderTrack><SliderRange /></SliderTrack>
                     <SliderThumb />
                   </Slider>
@@ -719,7 +796,7 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
 
                 <div className="flex items-center space-x-2">
                   <Checkbox id="orbit" checked={orbit} onCheckedChange={(c) => { playUISound(); setOrbit(c as boolean); }} />
-                  <label htmlFor="orbit" className="text-sm cursor-pointer">Orbit</label>
+                  <label htmlFor="orbit" className="text-sm cursor-pointer">Auto-Orbit</label>
                 </div>
               </div>
 
@@ -732,7 +809,7 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
               {showEffects && (
                 <div className="space-y-2 pl-2">
                   {Object.entries({
-                    lorentz: "Lorentz Transform",
+                    // lorentz: "Lorentz Transform",
                     doppler: "Doppler Shift",
                     beaming: "Relativistic Beaming",
                     disc: "Accretion Disc",
