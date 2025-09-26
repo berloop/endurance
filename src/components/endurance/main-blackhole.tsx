@@ -427,7 +427,9 @@ cameraRef.current = camera;
     for (let i = 0; i < starCount; i++) {
   const phi = Math.random() * Math.PI * 2;
   const theta = Math.random() * Math.PI;
-  const radius = 80; // CHANGE THIS to 20 or 30 (much closer)
+  const radius = 80; 
+
+  
   starPositions[i * 3] = radius * Math.sin(theta) * Math.cos(phi);
   starPositions[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
   starPositions[i * 3 + 2] = radius * Math.cos(theta);
@@ -500,7 +502,7 @@ const vel = new THREE.Vector3(
 const starsObj = scene.getObjectByName("stars") as THREE.Points;
 if (starsObj?.material) {
   // console.log("Stars count:", starsObj.geometry.attributes.position.count); // debugging stars.
-  (starsObj.material as THREE.ShaderMaterial).uniforms.uTime.value += 0.01;
+ (starsObj.material as THREE.ShaderMaterial).uniforms.uTime.value += 5; // 5x faster
 }
 
 
