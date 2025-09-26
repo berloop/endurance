@@ -1,14 +1,20 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // components/blackhole/main-blackhole.tsx
 "use client";
 
 import { SliderRange, SliderThumb, SliderTrack } from "@radix-ui/react-slider";
-import { CircleDot, ChevronDown, ChevronUp } from "lucide-react";
-import React, { useRef, useEffect, useState } from "react";
+import { CircleDot, ChevronDown, ChevronUp, Maximize, Download } from "lucide-react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import * as THREE from "three";
 import { Slider } from "../ui/slider";
 import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { AnimatePresence, motion } from "framer-motion";
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { createTwinklingStarMaterial } from "@/lib/star-shader";
+import MusicControls from "./music-controls";
 
 const fragmentShader = `
 #define PI 3.141592653589793238462643383279
@@ -113,7 +119,7 @@ void main() {
   if (lorentz_transform)
     ray_dir = lorentz_transform_velocity(ray_dir, cam_vel);
   
-  vec4 color = vec4(0.0,0.0,0.0,1.0);
+ vec4 color = vec4(0.0,0.0,0.0,0.0);
   
   vec3 point = cam_pos;
   vec3 velocity = ray_dir;
@@ -179,24 +185,14 @@ void main() {
     }
   }
   
-  if (distance > 1.0){
-    ray_dir = normalize(point - oldpoint);
-    vec2 tex_coord = to_spherical(ray_dir * ROT_Z(45.0 * DEG_TO_RAD));
-    
-    vec4 star_color = texture2D(star_texture, tex_coord);
-    if (star_color.g > 0.0){
-      float star_temperature = (MIN_TEMPERATURE + TEMPERATURE_RANGE*star_color.r);
-      float star_velocity = star_color.b - 0.5;
-      float star_doppler_factor = sqrt((1.0+star_velocity)/(1.0-star_velocity));
-      if (doppler_shift)
-        star_temperature /= ray_doppler_factor*star_doppler_factor;
-      color += vec4(temp_to_color(star_temperature),1.0)* star_color.g;
-    }
-    
-    color += texture2D(bg_texture, tex_coord) * 0.25;
-  }
   
-  gl_FragColor = color*ray_intensity;
+  
+// At the very end, replace gl_FragColor line with:
+if (color.a > 0.01) {
+  gl_FragColor = vec4(color.rgb * ray_intensity, color.a);
+} else {
+  discard; // Don't render transparent areas at all
+}
 }
 `;
 
@@ -211,18 +207,47 @@ void main() {
 const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const materialRef = useRef<THREE.ShaderMaterial>();
+  const composerRef = useRef<EffectComposer>();
+  const bloomPassRef = useRef<UnrealBloomPass>();
+  const rendererRef = useRef<THREE.WebGLRenderer>();
+  const sceneRef = useRef<THREE.Scene>();
+const cameraRef = useRef<THREE.PerspectiveCamera>();
+  const uiSoundRef = useRef<HTMLAudioElement>(null);
   
   const [uiVisible, setUiVisible] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [fps, setFps] = useState(60);
   const frameTimeRef = useRef(performance.now());
   const fpsHistory = useRef<number[]>([]);
   const lastFpsUpdate = useRef(0);
 
-  const [distance, setDistance] = useState(10.0);
-  const [theta, setTheta] = useState(0);
-  const [incline, setIncline] = useState(-5 * Math.PI / 180);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+ // Adding refs at the top with other refs
+const distanceRef = useRef(10.0);
+const thetaRef = useRef(0);
+const inclineRef = useRef(-5 * Math.PI / 180);
+const orbitRef = useRef(false);
+
+// Keep the state (for UI display)
+const [distance, setDistance] = useState(10.0);
+const [theta, setTheta] = useState(0);
+const [incline, setIncline] = useState(-5 * Math.PI / 180);
+  
+  const [fov, setFov] = useState(75);
+  const [orbit, setOrbit] = useState(false);
+  
+  const [showPerformance, setShowPerformance] = useState(false);
+  const [showBloom, setShowBloom] = useState(false);
+  const [showEffects, setShowEffects] = useState(false);
+  
   const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('medium');
+  const [resolution, setResolution] = useState(1.0);
+
+  const [bloom, setBloom] = useState({
+    strength: 2.0,
+    radius: 0.15,
+    threshold: 0.6,
+  });
 
   const [physics, setPhysics] = useState({
     lorentz: true,
@@ -232,20 +257,96 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
     useTexture: true,
   });
 
+  const playUISound = useCallback(() => {
+    if (soundEnabled && uiSoundRef.current) {
+      uiSoundRef.current.currentTime = 0;
+      uiSoundRef.current.volume = 0.3;
+      uiSoundRef.current.play().catch(() => {});
+    }
+  }, [soundEnabled]);
+
+  const toggleFullscreen = useCallback(async () => {
+    playUISound();
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      await document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  }, [playUISound]);
+
+const saveImage = useCallback(() => {
+  if (!rendererRef.current || !sceneRef.current || !cameraRef.current) {
+    console.log("Missing refs");
+    return;
+  }
+  playUISound();
+  
+  try {
+    // Force a render
+    if (composerRef.current) {
+      composerRef.current.render();
+    }
+    
+    // Try direct canvas method
+    rendererRef.current.domElement.toBlob((blob) => {
+      if (!blob) {
+        console.error("Failed to create blob");
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `blackhole-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      console.log("Image saved successfully");
+    });
+  } catch (error) {
+    console.error("Save image error:", error);
+  }
+}, [playUISound]);
+
   useEffect(() => {
     if (!mountRef.current) return;
 
     const scene = new THREE.Scene();
-    const camera = new THREE.Camera();
-    camera.position.z = 1;
+    sceneRef.current = scene;
+    
+    const camera = new THREE.PerspectiveCamera(
+  75, 
+  window.innerWidth / window.innerHeight, 
+  0.1, 
+  1000
+);
+camera.position.z = 1;
+cameraRef.current = camera; 
 
-    const renderer = new THREE.WebGLRenderer({ antialias: false });
+    const renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
     renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
     mountRef.current.appendChild(renderer.domElement);
+    rendererRef.current = renderer;
+
+    // Composer with bloom
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    const bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(128, 128),
+      bloom.strength,
+      bloom.radius,
+      bloom.threshold
+    );
+    composer.addPass(renderPass);
+    composer.addPass(bloomPass);
+    composerRef.current = composer;
+    bloomPassRef.current = bloomPass;
 
     const textureLoader = new THREE.TextureLoader();
-    const bgTexture = textureLoader.load('/blackhole/galaxy_05.jpg');
-    const starTexture = textureLoader.load('/blackhole/galaxy_05.jpg');
+    const bgTexture = textureLoader.load('/blackhole/galaxy_0.jpg');
+    const starTexture = textureLoader.load('/blackhole/galaxy_0.jpg');
     const discTexture = textureLoader.load('/blackhole/accretion_disk_monochrome.png');
 
     [bgTexture, starTexture, discTexture].forEach(tex => {
@@ -268,13 +369,14 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
     const material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader: getDefines(quality) + fragmentShader,
+      transparent: true,
       uniforms: {
         time: { value: 0 },
         resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
         cam_pos: { value: new THREE.Vector3() },
         cam_dir: { value: new THREE.Vector3(0, 0, -1) },
         cam_up: { value: new THREE.Vector3(0, 1, 0) },
-        fov: { value: 75 },
+        fov: { value: fov },
         cam_vel: { value: new THREE.Vector3() },
         accretion_disk: { value: true },
         use_disk_texture: { value: true },
@@ -288,8 +390,35 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
     });
     materialRef.current = material;
 
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), material);
+    mesh.rotation.z = -15 * Math.PI / 180; // Anticlockwise tilt
     scene.add(mesh);
+
+    // Add twinkling stars
+    const starGeometry = new THREE.BufferGeometry();
+    const starCount = 3000;
+    const starPositions = new Float32Array(starCount * 3);
+    const flickerData = new Float32Array(starCount);
+    const flickerSpeed = new Float32Array(starCount);
+
+    for (let i = 0; i < starCount; i++) {
+  const phi = Math.random() * Math.PI * 2;
+  const theta = Math.random() * Math.PI;
+  const radius = 80; // CHANGE THIS to 20 or 30 (much closer)
+  starPositions[i * 3] = radius * Math.sin(theta) * Math.cos(phi);
+  starPositions[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
+  starPositions[i * 3 + 2] = radius * Math.cos(theta);
+  flickerData[i] = Math.random() * Math.PI * 2;
+  flickerSpeed[i] = 0.5 + Math.random() * 2.0;
+}
+    starGeometry.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
+    starGeometry.setAttribute("flickerData", new THREE.BufferAttribute(flickerData, 1));
+    starGeometry.setAttribute("flickerSpeed", new THREE.BufferAttribute(flickerSpeed, 1));
+
+   const starMaterial = new THREE.ShaderMaterial(createTwinklingStarMaterial(0.2)); // Much brighter/bigger
+    const stars = new THREE.Points(starGeometry, starMaterial);
+    stars.name = "stars";
+    scene.add(stars);
 
     let animationId: number;
     
@@ -309,16 +438,30 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
         lastFpsUpdate.current = now;
       }
 
-      const r = distance;
-      const cos = Math.cos(theta);
-      const sin = Math.sin(theta);
-      const pos = new THREE.Vector3(r * sin, 0, r * cos);
-      const inclineMatrix = new THREE.Matrix4().makeRotationX(incline);
-      pos.applyMatrix4(inclineMatrix);
+   // Auto-orbit
+if (orbitRef.current) {
+  thetaRef.current += 0.005;
+  setTheta(thetaRef.current);
+}
 
-      const maxAngularVel = 1 / Math.sqrt(2.0 * (r - 1.0)) / r;
-      const vel = new THREE.Vector3(cos * maxAngularVel, 0, -sin * maxAngularVel);
-      vel.applyMatrix4(inclineMatrix);
+  const r = distanceRef.current;
+const theta = thetaRef.current;
+const incline = inclineRef.current;
+
+// Spherical coordinates with incline as elevation angle
+const x = r * Math.cos(incline) * Math.sin(theta);
+const y = r * Math.sin(incline);
+const z = r * Math.cos(incline) * Math.cos(theta);
+
+const pos = new THREE.Vector3(x, y, z);
+
+// Velocity calculation with incline
+const maxAngularVel = 1 / Math.sqrt(2.0 * (r - 1.0)) / r;
+const vel = new THREE.Vector3(
+  Math.cos(theta) * maxAngularVel * Math.cos(incline),
+  0,
+  -Math.sin(theta) * maxAngularVel * Math.cos(incline)
+);
 
       const dir = new THREE.Vector3(0, 0, 0).sub(pos).normalize();
       const up = new THREE.Vector3(0, 1, 0);
@@ -329,14 +472,40 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
       material.uniforms.cam_up.value.copy(up);
       material.uniforms.cam_vel.value.copy(vel);
 
-      renderer.render(scene, camera);
+     
+     // Update stars
+const starsObj = scene.getObjectByName("stars") as THREE.Points;
+if (starsObj?.material) {
+  console.log("Stars count:", starsObj.geometry.attributes.position.count); // ADD THIS
+  (starsObj.material as THREE.ShaderMaterial).uniforms.uTime.value += 0.01;
+}
+      // Resolution
+      renderer.setPixelRatio(window.devicePixelRatio * resolution);
+      composer.setSize(
+        window.innerWidth * resolution,
+        window.innerHeight * resolution
+      );
+
+      composer.render();
     };
     animate();
 
-    const handleResize = () => {
-      if (!mountRef.current) return;
-      renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
-      material.uniforms.resolution.value.set(mountRef.current.clientWidth, mountRef.current.clientHeight);
+   const handleResize = () => {
+  if (!mountRef.current) return;
+  const cam = cameraRef.current;
+  if (cam) {
+    cam.aspect = mountRef.current.clientWidth / mountRef.current.clientHeight;
+    cam.updateProjectionMatrix();
+  }
+  renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+      composer.setSize(
+        mountRef.current.clientWidth * resolution,
+        mountRef.current.clientHeight * resolution
+      );
+      material.uniforms.resolution.value.set(
+        mountRef.current.clientWidth * resolution,
+        mountRef.current.clientHeight * resolution
+      );
     };
     window.addEventListener("resize", handleResize);
 
@@ -350,7 +519,6 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
     };
   }, []);
 
-  // Update quality
   useEffect(() => {
     if (materialRef.current) {
       const getDefines = (q: string) => {
@@ -367,7 +535,6 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
     }
   }, [quality]);
 
-  // Update physics
   useEffect(() => {
     if (materialRef.current) {
       materialRef.current.uniforms.accretion_disk.value = physics.disc;
@@ -378,13 +545,41 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
     }
   }, [physics]);
 
+// Update bloom in real-time
+useEffect(() => {
+  if (bloomPassRef.current) {
+    bloomPassRef.current.strength = bloom.strength;
+    bloomPassRef.current.radius = bloom.radius;
+    bloomPassRef.current.threshold = bloom.threshold;
+  }
+}, [bloom]);
+
+// Update FOV in real-time
+useEffect(() => {
+  if (materialRef.current) {
+    materialRef.current.uniforms.fov.value = fov;
+  }
+}, [fov]);
+
+// Add these useEffects to sync state to refs..
+useEffect(() => { distanceRef.current = distance; }, [distance]);
+useEffect(() => { thetaRef.current = theta; }, [theta]);
+useEffect(() => { inclineRef.current = incline; }, [incline]);
+useEffect(() => { orbitRef.current = orbit; }, [orbit]);
+
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === "h" || e.key === "H") setUiVisible(!uiVisible);
+      if (e.key === "h" || e.key === "H") {
+        playUISound();
+        setUiVisible(!uiVisible);
+      }
+      if (e.key === "f" || e.key === "F") {
+        toggleFullscreen();
+      }
     };
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [uiVisible]);
+  }, [uiVisible, toggleFullscreen, playUISound]);
 
   return (
     <div className={`relative w-full h-full ${className}`}>
@@ -396,80 +591,176 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="absolute top-4 left-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white max-w-xs max-h-[90vh] overflow-y-auto"
+            className="absolute top-4 left-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white max-w-xs max-h-[90vh] overflow-y-auto scrollbar-thin"
           >
             <h3 className="text-lg font-semibold mb-3">Schwarzschild Black Hole</h3>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm mb-2 flex justify-between">
-                  <span>Distance:</span>
-                  <span className="font-mono">{distance.toFixed(1)}M</span>
-                </label>
-                <Slider value={[distance]} onValueChange={(v) => setDistance(v[0])} min={3} max={20} step={0.5}>
-                  <SliderTrack><SliderRange /></SliderTrack>
-                  <SliderThumb />
-                </Slider>
-              </div>
+              {/* Performance */}
+              <Button size="sm" variant="cooper" onClick={() => { playUISound(); setShowPerformance(!showPerformance); }} className="w-full justify-between">
+                <span>Performance</span>
+                {showPerformance ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </Button>
 
-              <div>
-                <label className="block text-sm mb-2 flex justify-between">
-                  <span>Angle:</span>
-                  <span className="font-mono">{Math.round(theta * 180 / Math.PI)}°</span>
-                </label>
-                <Slider value={[theta]} onValueChange={(v) => setTheta(v[0])} min={0} max={Math.PI * 2} step={0.01}>
-                  <SliderTrack><SliderRange /></SliderTrack>
-                  <SliderThumb />
-                </Slider>
-              </div>
+              {showPerformance && (
+                <div className="space-y-3 pl-2">
+                  <div>
+                    <label className="block text-sm mb-2">Resolution: {resolution}</label>
+                    <select 
+                      value={resolution}
+                      onChange={(e) => { playUISound(); setResolution(Number(e.target.value)); }}
+                      className="w-full bg-neutral-800 rounded p-1 text-sm"
+                    >
+                      <option value={0.25}>0.25</option>
+                      <option value={0.5}>0.5</option>
+                      <option value={1.0}>1.0</option>
+                      <option value={2.0}>2.0</option>
+                      <option value={4.0}>4.0</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-2">Quality:</label>
+                    <div className="flex gap-2">
+                      {(['low', 'medium', 'high'] as const).map((q) => (
+                        <Button key={q} size="sm" variant={quality === q ? "default" : "secondary"} onClick={() => { playUISound(); setQuality(q); }}>
+                          {q}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-              <div>
-                <label className="block text-sm mb-2 flex justify-between">
-                  <span>Incline:</span>
-                  <span className="font-mono">{Math.round(incline * 180 / Math.PI)}°</span>
-                </label>
-                <Slider value={[incline]} onValueChange={(v) => setIncline(v[0])} min={-Math.PI / 2} max={Math.PI / 2} step={0.01}>
-                  <SliderTrack><SliderRange /></SliderTrack>
-                  <SliderThumb />
-                </Slider>
-              </div>
+              {/* Bloom */}
+              <Button size="sm" variant="cooper" onClick={() => { playUISound(); setShowBloom(!showBloom); }} className="w-full justify-between">
+                <span>Bloom</span>
+                {showBloom ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </Button>
 
-              <div>
-                <label className="block text-sm mb-2">Quality:</label>
-                <div className="flex gap-2">
-                  {(['low', 'medium', 'high'] as const).map((q) => (
-                    <Button key={q} size="sm" variant={quality === q ? "default" : "secondary"} onClick={() => setQuality(q)}>
-                      {q}
-                    </Button>
-                  ))}
+              {showBloom && (
+                <div className="space-y-3 pl-2">
+                  <div>
+                    <label className="block text-sm mb-2 flex justify-between">
+                      <span>Strength:</span>
+                      <span className="font-mono">{bloom.strength.toFixed(1)}</span>
+                    </label>
+                    <Slider value={[bloom.strength]} onValueChange={(v) => { playUISound(); setBloom(b => ({ ...b, strength: v[0] })); }} min={0} max={3} step={0.1}>
+                      <SliderTrack><SliderRange /></SliderTrack>
+                      <SliderThumb />
+                    </Slider>
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-2 flex justify-between">
+                      <span>Radius:</span>
+                      <span className="font-mono">{bloom.radius.toFixed(1)}</span>
+                    </label>
+                    <Slider value={[bloom.radius]} onValueChange={(v) => { playUISound(); setBloom(b => ({ ...b, radius: v[0] })); }} min={0} max={1} step={0.1}>
+                      <SliderTrack><SliderRange /></SliderTrack>
+                      <SliderThumb />
+                    </Slider>
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-2 flex justify-between">
+                      <span>Threshold:</span>
+                      <span className="font-mono">{bloom.threshold.toFixed(1)}</span>
+                    </label>
+                    <Slider value={[bloom.threshold]} onValueChange={(v) => { playUISound(); setBloom(b => ({ ...b, threshold: v[0] })); }} min={0} max={1} step={0.1}>
+                      <SliderTrack><SliderRange /></SliderTrack>
+                      <SliderThumb />
+                    </Slider>
+                  </div>
+                </div>
+              )}
+
+              {/* Observer */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm mb-2 flex justify-between">
+                    <span>Distance:</span>
+                    <span className="font-mono">{distance.toFixed(1)}M</span>
+                  </label>
+                  <Slider value={[distance]} onValueChange={(v) => { playUISound(); setDistance(v[0]); }} min={2} max={14} step={0.5}>
+                    <SliderTrack><SliderRange /></SliderTrack>
+                    <SliderThumb />
+                  </Slider>
+                </div>
+                 <div>
+    <label className="block text-sm mb-2 flex justify-between">
+      <span>Angle:</span>
+      <span className="font-mono">{Math.round(theta * 180 / Math.PI)}°</span>
+    </label>
+    <Slider value={[theta]} onValueChange={(v) => { playUISound(); setTheta(v[0]); }} min={0} max={Math.PI * 2} step={0.01}>
+      <SliderTrack><SliderRange /></SliderTrack>
+      <SliderThumb />
+    </Slider>
+  </div>
+
+  <div>
+    <label className="block text-sm mb-2 flex justify-between">
+      <span>Incline:</span>
+      <span className="font-mono">{Math.round(incline * 180 / Math.PI)}°</span>
+    </label>
+    <Slider value={[incline]} onValueChange={(v) => { playUISound(); setIncline(v[0]); }} min={-Math.PI / 2} max={Math.PI / 2} step={0.01}>
+      <SliderTrack><SliderRange /></SliderTrack>
+      <SliderThumb />
+    </Slider>
+  </div>
+
+                <div>
+                  <label className="block text-sm mb-2 flex justify-between">
+                    <span>FOV:</span>
+                    <span className="font-mono">{fov}°</span>
+                  </label>
+                  <Slider value={[fov]} onValueChange={(v) => { playUISound(); setFov(v[0]); }} min={30} max={90} step={1}>
+                    <SliderTrack><SliderRange /></SliderTrack>
+                    <SliderThumb />
+                    </Slider>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Checkbox id="orbit" checked={orbit} onCheckedChange={(c) => { playUISound(); setOrbit(c as boolean); }} />
+                  <label htmlFor="orbit" className="text-sm cursor-pointer">Orbit</label>
                 </div>
               </div>
 
-              <Button size="sm" variant="cooper" onClick={() => setShowAdvanced(!showAdvanced)} className="w-full justify-between">
-                <span>Physics</span>
-                {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              {/* Effects */}
+              <Button size="sm" variant="cooper" onClick={() => { playUISound(); setShowEffects(!showEffects); }} className="w-full justify-between">
+                <span>Effects</span>
+                {showEffects ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
               </Button>
 
-              {showAdvanced && (
-                <div className="space-y-2 pt-2 border-t border-neutral-600">
+              {showEffects && (
+                <div className="space-y-2 pl-2">
                   {Object.entries({
                     lorentz: "Lorentz Transform",
                     doppler: "Doppler Shift",
                     beaming: "Relativistic Beaming",
                     disc: "Accretion Disc",
-                    useTexture: "Use Disc Texture",
+                    // useTexture: "Use Disc Texture",
                   }).map(([key, label]) => (
                     <div key={key} className="flex items-center space-x-2">
                       <Checkbox 
                         id={key}
                         checked={physics[key as keyof typeof physics]} 
-                        onCheckedChange={(c) => setPhysics(p => ({ ...p, [key]: c }))} 
+                        onCheckedChange={(c) => { playUISound(); setPhysics(p => ({ ...p, [key]: c })); }} 
                       />
                       <label htmlFor={key} className="text-sm cursor-pointer">{label}</label>
                     </div>
                   ))}
                 </div>
               )}
+
+              {/* Actions */}
+              <div className="pt-2 border-t border-neutral-600 space-y-2">
+                <Button size="sm" onClick={saveImage} className="w-full flex items-center gap-2 justify-center">
+                  <Download className="w-4 h-4" />
+                  Save as Image
+                </Button>
+                <Button size="sm" onClick={toggleFullscreen} className="w-full flex items-center gap-2 justify-center">
+                  <Maximize className="w-4 h-4" />
+                  {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+                </Button>
+              </div>
             </div>
           </motion.div>
         )}
@@ -493,10 +784,33 @@ const MainBlackHole: React.FC<{ className?: string }> = ({ className = "" }) => 
           </motion.div>
         )}
       </AnimatePresence>
-
+   {/* Music Controls - NEW */}
+<AnimatePresence>
+  {uiVisible && (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.8, x: 20 }}
+      animate={{ opacity: 1, scale: 1, x: 0 }}
+      exit={{ opacity: 0, scale: 0.8, x: 20 }}
+      transition={{ 
+        type: "spring", 
+        stiffness: 500, 
+        damping: 25,
+        duration: 0.15 
+      }}
+      className="absolute bottom-14 right-4 hidden md:block"
+    >
+      <MusicControls />
+    </motion.div>
+  )}
+</AnimatePresence>
       <div className="absolute bottom-4 left-4 text-white text-xs opacity-50">
-        Press &apos;H&apos; to {uiVisible ? "hide" : "show"} UI
+        Press &apos;H&apos; to {uiVisible ? "hide" : "show"} UI | Press &apos;F&apos; for fullscreen
       </div>
+
+      {/* UI Sound */}
+      <audio ref={uiSoundRef} preload="auto">
+        <source src="/sounds/ui-click.mp3" type="audio/mpeg" />
+      </audio>
     </div>
   );
 };
