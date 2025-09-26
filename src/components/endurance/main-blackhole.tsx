@@ -17,6 +17,7 @@ import { createTwinklingStarMaterial } from "@/lib/star-shader";
 import MusicControls from "./music-controls";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
+
 const fragmentShader = `
 #define PI 3.141592653589793238462643383279
 #define DEG_TO_RAD (PI/180.0)
@@ -251,19 +252,22 @@ const [incline, setIncline] = useState((10 * Math.PI) / 180);
   
   const [fov, setFov] = useState(67);
   const [orbit, setOrbit] = useState(false);
-  const [diskTemperature, setDiskTemperature] = useState(6500); // Kelvin, default warm white
+  const [diskTemperature, setDiskTemperature] = useState(4300); // Kelvin, default warm white
   
   const [showPerformance, setShowPerformance] = useState(false);
   const [showBloom, setShowBloom] = useState(false);
   const [showEffects, setShowEffects] = useState(false);
+
+  const [showMillersPlanet, setShowMillersPlanet] = useState(false);
+const showMillersPlanetRef = useRef(false);
   
   const [quality, setQuality] = useState<'low' | 'medium' | 'high'>('medium');
   const [resolution, setResolution] = useState(1.0);
 
   const [bloom, setBloom] = useState({
     strength: 2.0,
-    radius: 0.15,
-    threshold: 0.6,
+    radius: 0.1,
+    threshold: 0.0,
   });
 
   const [physics, setPhysics] = useState({
@@ -412,6 +416,7 @@ cameraRef.current = camera;
     mesh.rotation.z = -15 * Math.PI / 180; // Anticlockwise tilt
     scene.add(mesh);
 
+
     // Add twinkling stars
     const starGeometry = new THREE.BufferGeometry();
     const starCount = 3000;
@@ -494,9 +499,11 @@ const vel = new THREE.Vector3(
      // Update stars
 const starsObj = scene.getObjectByName("stars") as THREE.Points;
 if (starsObj?.material) {
-  console.log("Stars count:", starsObj.geometry.attributes.position.count); // ADD THIS
+  // console.log("Stars count:", starsObj.geometry.attributes.position.count); // debugging stars.
   (starsObj.material as THREE.ShaderMaterial).uniforms.uTime.value += 0.01;
 }
+
+
       // Resolution
       renderer.setPixelRatio(window.devicePixelRatio * resolution);
       composer.setSize(
@@ -572,6 +579,9 @@ if (starsObj?.material) {
   }
 }, [diskTemperature]);
 
+useEffect(() => { 
+  showMillersPlanetRef.current = showMillersPlanet; 
+}, [showMillersPlanet]);
 // Update bloom in real-time
 useEffect(() => {
   if (bloomPassRef.current) {
@@ -654,26 +664,29 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
 
               {showPerformance && (
                 <div className="space-y-3 pl-2">
-                  <div>
-  <label className="block text-sm mb-2">Resolution: {resolution}</label>
+                <div>
+  <div className="flex justify-between items-center mb-2">
+    <label className="text-sm">Resolution:</label>
+    <span className="text-sm font-mono">{resolution}x</span>
+  </div>
   <Select 
-    value={resolution.toString()} 
-    onValueChange={(value) => { 
-      playUISound(); 
-      setResolution(Number(value)); 
-    }}
-  >
-    <SelectTrigger className="w-full bg-neutral-800 border-neutral-700 text-sm h-8">
-      <SelectValue />
-    </SelectTrigger>
-    <SelectContent className="bg-neutral-800 border-neutral-700">
-      <SelectItem value="0.25">0.25x</SelectItem>
-      <SelectItem value="0.5">0.5x</SelectItem>
-      <SelectItem value="1.0">1.0x</SelectItem>
-      <SelectItem value="2.0">2.0x</SelectItem>
-      <SelectItem value="4.0">4.0x</SelectItem>
-    </SelectContent>
-  </Select>
+  value={resolution.toString().includes('.') ? resolution.toString() : `${resolution}.0`}
+  onValueChange={(value) => { 
+    playUISound(); 
+    setResolution(Number(value)); 
+  }}
+>
+  <SelectTrigger className="w-full border-neutral-700 text-sm h-8 rounded-none">
+    <SelectValue />
+  </SelectTrigger>
+  <SelectContent className="bg-black border-neutral-700 text-white rounded-none">
+    <SelectItem value="0.25">0.25x</SelectItem>
+    <SelectItem value="0.5">0.5x</SelectItem>
+    <SelectItem value="1.0">1.0x</SelectItem>
+    <SelectItem value="2.0">2.0x</SelectItem>
+    <SelectItem value="4.0">4.0x</SelectItem>
+  </SelectContent>
+</Select>
 </div>
                   <div>
                     <label className="block text-sm mb-2">Quality:</label>
@@ -824,6 +837,7 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
                       <label htmlFor={key} className="text-sm cursor-pointer">{label}</label>
                     </div>
                   ))}
+                  
                 </div>
               )}
 
@@ -831,12 +845,12 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
               <div className="pt-2 border-t border-neutral-600 space-y-2">
                 <Button size="sm" onClick={saveImage} className="w-full flex items-center gap-2 justify-center">
                   <Download className="w-4 h-4" />
-                  Save as Image
+                  Capture As Image
                 </Button>
-                <Button size="sm" onClick={toggleFullscreen} className="w-full flex items-center gap-2 justify-center">
+                {/* <Button size="sm" onClick={toggleFullscreen} className="w-full flex items-center gap-2 justify-center">
                   <Maximize className="w-4 h-4" />
                   {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-                </Button>
+                </Button> */}
               </div>
             </div>
           </motion.div>
