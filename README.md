@@ -5,7 +5,7 @@ Project L.A.Z.A.R.U.S
 
 A real-time relativistic visualization platform for exploring gravitational phenomena through physically-based simulations. Features accurate implementations of Schwarzschild black holes and Morris-Thorne wormholes using general relativity equations.
 
-![Project Banner](./public/nureadme.jpg)
+![Project Banner](./public/new-readme.png)
 
 Overview
 --------
@@ -118,12 +118,32 @@ Background music from Hans Zimmer's Interstellar Original Motion Picture Soundtr
 *   "Dust Bowl (Short Film Audio)"
 *   Alessandro Roussel - ScienceClic Musique
 
-Scientific References
----------------------
+## Scientific References
 
-1.  **James, O., von Tunzelmann, E., Franklin, P., & Thorne, K. S.** (2015). "Gravitational lensing by spinning black holes in astrophysics, and in the movie Interstellar". Classical and Quantum Gravity.
-2.  **Luminet, J. P.** (1979). "Image of a spherical black hole with thin accretion disk". Astronomy and Astrophysics.
-3.  **Thorne, K. S.** (2014). The Science of Interstellar. W. W. Norton & Company.
+1. **"Visualizing Interstellar's Wormhole"**  
+   Oliver James, Eugénie von Tunzelmann, Paul Franklin, Kip S. Thorne  
+   *American Journal of Physics* 83(6): 486-499 (2015)  
+   DOI: 10.1119/1.4916949
+
+2. **"Gravitational Lensing by Spinning Black Holes in Astrophysics, and in the Movie Interstellar"**  
+   Oliver James, Eugénie von Tunzelmann, Paul Franklin, Kip S. Thorne  
+   *Classical and Quantum Gravity* 32: 065001 (2015)  
+   DOI: 10.1088/0264-9381/32/6/065001
+
+3. **"The Science of Interstellar"**  
+   Kip S. Thorne  
+   W. W. Norton & Company (2014)  
+   ISBN: 978-0393351378
+
+4. **"Wormholes in Spacetime and Their Use for Interstellar Travel: A Tool for Teaching General Relativity"**  
+   Michael S. Morris, Kip S. Thorne  
+   *American Journal of Physics* 56(5): 395-412 (1988)  
+   DOI: 10.1119/1.15620
+
+5. **"Image of a Spherical Black Hole with Thin Accretion Disk"**  
+   Jean-Pierre Luminet  
+   *Astronomy and Astrophysics* 75: 228-235 (1979)
+
 
 Support
 -------
@@ -132,7 +152,7 @@ This project is completely free and open-source. If you find it valuable:
 
 *   ⭐ Star the repository
 *   🐛 Report bugs or request features
-*   💝 [Support development](https://your-deployment-url.vercel.app/donate)
+*   💝 [Support development](https://lazarus.space/donate)
 *   📢 Share with educators and students
 
 License
@@ -143,12 +163,10 @@ MIT License - see LICENSE file for details.
 Author
 ------
 
-**Created by Egret**
+**Created by [Egret](https://linktr.ee/egrettas)**
 
-*   GitHub: [@berloop](https://github.com/berloop)
-*   Email: egretfx@gmail.com
-*   Project: [github.com/berloop/endurance](https://github.com/berloop/endurance)
+*   Personal Email: egretfx@gmail.com
 
 * * *
 
-Making general relativity accessible through interactive visualization
+"Dedicated to the brave men and women who gave their lives so we could begin again."
