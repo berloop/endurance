@@ -7,6 +7,7 @@ import { CoffeeIcon, Github, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { TooltipProvider } from '@radix-ui/react-tooltip'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
+import Image from 'next/image'
 
 const Header = () => {
   const pathname = usePathname()
@@ -47,6 +48,7 @@ const Header = () => {
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
+    
 
 
         {/* Desktop Navigation */}
@@ -72,7 +74,8 @@ const Header = () => {
               )}
             </Link>
           ))}
-  
+
+        
  {/* GitHub Link */}
 <Tooltip>
   <TooltipTrigger asChild>
@@ -113,7 +116,21 @@ const Header = () => {
     Buy Me a Coffee
   </TooltipContent>
 </Tooltip>
-
+   <a 
+    href="https://www.producthunt.com/products/project-l-a-z-a-r-u-s?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-project-l-a-z-a-r-u-s" 
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex items-center"
+  >
+    <Image 
+      src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1021462&theme=dark&t=1759230742167" 
+      alt="Project L.A.Z.A.R.U.S - Open-source web engine to explore physics-based simulations. | Product Hunt" 
+      width="200" 
+      height="43"
+      className="h-8 w-auto"
+    />
+  </a>
+  
           
         </nav>
 
@@ -165,7 +182,7 @@ const Header = () => {
           onClick={() => setMobileMenuOpen(false)}
         >
           <Github className="w-4 h-4" />
-          Source Code
+          Code
         </a>
         <Link 
           href="/donate"
@@ -175,6 +192,21 @@ const Header = () => {
           <CoffeeIcon className="w-4 h-4" />
           Donate
         </Link>
+           <a 
+    href="https://www.producthunt.com/products/project-l-a-z-a-r-u-s?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-project-l-a-z-a-r-u-s" 
+    target="_blank"
+    rel="noopener noreferrer"
+    className="flex items-center"
+  >
+    <Image 
+      src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1021462&theme=dark&t=1759230742167" 
+      alt="Project L.A.Z.A.R.U.S - Open-source web engine to explore physics-based simulations. | Product Hunt" 
+      width="100" 
+      height="43"
+      className="h-8 w-auto"
+    />
+  </a>
+  
       </div>
     </div>
   </motion.nav>
