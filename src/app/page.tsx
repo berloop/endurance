@@ -76,7 +76,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-none">
+    <main className="min-h-screen bg-none select-none">
       {/* Header */}
       <Header />
 

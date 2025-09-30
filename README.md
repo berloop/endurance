@@ -1,147 +1,154 @@
-Project Lazarus 🌌
-==================
+Project L.A.Z.A.R.U.S
+=====================
 
-**Project Lazarus** is a scientifically accurate interstellar wormhole visualization platform inspired by the 2015 research paper _"Visualizing Interstellar's Wormhole"_ by James, von Tunzelmann, Franklin & Thorne. The project faithfully implements the physics equations used in the movie _Interstellar_ to generate realistic gravitational lensing effects.
+**Lensing Anomalies & Zone Astrophysics for Research on Universal Singularities**
 
-🚀 Features
------------
+A real-time relativistic visualization platform for exploring gravitational phenomena through physically-based simulations. Features accurate implementations of Schwarzschild black holes and Morris-Thorne wormholes using general relativity equations.
 
-*   🌀 Real-time geodesic ray tracing through curved spacetime
-    
-*   🎵 Immersive audio system featuring Hans Zimmer’s _Interstellar_ soundtrack
-    
-*   ⚙ Physics-accurate wormhole simulation using Dneg three-parameter equations
-    
-*   ⚡ Smooth 60fps WebGL rendering with Three.js
-    
-*   🎨 Interactive shader controls with real-time parameter adjustments
-    
-*   🌟 Dynamic, twinkling starfields with custom shader effects
-    
-*   📊 Performance monitoring with FPS counter
-    
-*   🎛 Dual rendering modes: Geometry visualization and ray-traced simulation
-    
-*   🔇 Toggleable UI with fullscreen and audio controls
-    
-*   📐 Mathematical annotations and dimensional displays
-    
+![Project Banner](./public/nureadme.jpg)
 
-🔥 Technologies
----------------
+Overview
+--------
 
-*   🏗 **Framework:** Next.js with TypeScript
-    
-*   🎭 **3D Rendering:** Three.js with custom WebGL shaders
-    
-*   🔬 **Physics:** Hamiltonian geodesic integration for ray tracing
-    
-*   💻 **Frontend:** React with advanced state management
-    
-*   🎨 **Styling:** Tailwind CSS with custom components
-    
-*   🎵 **Audio:** React H5 Audio Player for precise music control
-    
-*   🌌 **Shaders:** Custom GLSL implementation of gravitational lensing equations
-    
-*   ⭐ **Visual Effects:** Procedural starfields and particle systems
-    
+Project L.A.Z.A.R.U.S bridges theoretical physics and interactive visualization, making complex general relativity concepts accessible through real-time GPU-accelerated simulations. Built for students, educators, and astrophysics enthusiasts.
 
-🛠 Installation
+### Key Features
+
+*   **Schwarzschild Black Hole Simulation**
+    *   Real-time geodesic ray tracing in curved spacetime
+    *   Temperature-gradient accretion disk (3,000K - 12,000K)
+    *   Fractal Brownian Motion turbulence effects
+    *   Doppler shift and relativistic beaming
+    *   Interactive camera controls with auto-orbit mode
+*   **Morris-Thorne Wormhole Visualization**
+    *   Three-parameter wormhole metric (ρ, a, M)
+    *   Dual rendering modes (geometry + ray-traced)
+    *   Einstein ring visualization
+    *   Multiple rotation patterns
+*   **Educational Resources**
+    *   Comprehensive documentation
+    *   User guides and controls reference
+    *   Shader implementation explanations
+    *   Physics theory breakdowns
+
+Tech Stack
+----------
+
+*   **Framework:** Next.js 15 (React 18)
+*   **3D Graphics:** Three.js with custom GLSL shaders
+*   **Physics:** Hamiltonian geodesic integration
+*   **Styling:** Tailwind CSS
+*   **Animations:** Framer Motion
+*   **UI Components:** shadcn/ui
+*   **Audio:** React H5 Audio Player
+*   **Language:** TypeScript
+
+Getting Started
 ---------------
 
 ### Prerequisites
 
-*   Node.js v18 or later
-    
+*   Node.js 18+
 *   npm or yarn
+
+### Installation
+
+    # Clone the repository
+    git clone https://github.com/berloop/endurance.git
+    cd endurance
     
-
-### Steps
-
-1.  Clone or download the repository
+    # Install dependencies
+    npm install --legacy-peer-deps
     
-2.  \# Using npmnpm install# Using yarnyarn install add —legacy-peer-ds flag
-    
-3.  Add texture files to /public/:
-    
-    *   galaxy.jpg (wormhole interior texture)
-        
-    *   galaxy\_05.jpg (wormhole exterior texture)
-        
-4.  npm run dev
-    
+    # Run development server
+    npm run dev
 
-🎮 Controls
------------
+Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-### Keyboard Shortcuts
+### Build for Production
 
-*   H — Toggle UI visibility
-    
-*   F — Enter/exit fullscreen
-    
+    npm run build
+    npm start
 
-### Parameter Controls
 
-*   **Wormhole Physics:** Adjust radius (ρ), half-length (a), and lensing (M)
-    
-*   **Camera:** Control distance and viewing angle
-    
-*   **Advanced Parameters:**
-    
-    *   Rotation modes (Oscillating, Bounded, Linear, Spiral)
-        
-    *   Einstein ring customization (color, intensity, sharpness)
-        
-    *   Particle visibility toggle
-        
-    *   Animation pause/resume
-        
+### Black Hole Parameters
 
-### Render Modes
+*   **Distance:** Camera distance (7-14 Schwarzschild radii)
+*   **Angle:** Horizontal orbital position (0-360°)
+*   **Incline:** Vertical viewing angle (-90° to 90°)
+*   **FOV:** Field of view (30-90°)
+*   **Auto-Orbit:** Automatic camera rotation
 
-*   **Geometry Mode:** Wireframe embedding diagram with mathematical visualization
-    
-*   **Ray-Traced Mode:** Physics-accurate gravitational lensing simulation
-    
+### Bloom & Visual Effects
 
-🧮 Physics Implementation
--------------------------
+*   **Strength:** Bloom intensity (0-3)
+*   **Radius:** Bloom spread (0-1)
+*   **Threshold:** Brightness cutoff (0-1)
+*   **Disk Temperature:** Accretion disk color (3,000-12,000K)
 
-*   **Wormhole Metric:** Dneg three-parameter wormhole (ρ, a, M)
-    
-*   **Ray Tracing:** Real-time integration of light geodesics using Hamilton’s equations
-    
-*   **Gravitational Lensing:** Primary, secondary, and tertiary lensed images
-    
-*   **Einstein Rings:** Physics-based ring visualization with adjustable properties
-    
+Physics Implementation
+----------------------
 
-💡 About
---------
+### Black Hole Ray Tracing
 
-Project Lazarus bridges science and cinematic visualization, making advanced general relativity concepts accessible through interactive exploration. Its ray tracing system solves the actual differential equations governing light propagation in curved spacetime, offering a genuine physics sandbox for students, enthusiasts, and researchers alike.
+The simulation solves the geodesic equation in Schwarzschild spacetime using Euler integration. The acceleration term derives from the Schwarzschild metric, where light rays bend according to the curvature of spacetime around the black hole.
 
-Future plans include Kerr black hole visualization, expanding to more exotic spacetime geometries.
+### Accretion Disk
 
-🎵 Audio Credits
-----------------
+*   **Temperature Gradient:** T ∝ r\-3/4 physical law
+*   **Doppler Shifting:** Relativistic frequency shifts for rotating matter
+*   **Beaming Effects:** Intensity scaling by velocity cubed
+*   **FBM Turbulence:** Procedural noise for visual complexity
 
-Background music sourced from Hans Zimmer’s _Interstellar_ Original Motion Picture Soundtrack:
+### Wormhole Metric
 
-*   Day One (Interstellar Theme) 
-*   The Wormhole
-*   Introducing The Dust Bowl (Short Film Audio)
+Based on the Dneg three-parameter wormhole from Interstellar:
+
+*   ρ (rho): Wormhole radius
+*   a: Half-length parameter
+*   M: Lensing strength
+
+Audio Credits
+-------------
+
+Background music from Hans Zimmer's Interstellar Original Motion Picture Soundtrack:
+
+*   "Day One (Interstellar Theme)"
+*   "The Wormhole"
+*   "Dust Bowl (Short Film Audio)"
 *   Alessandro Roussel - ScienceClic Musique
-    
-    
 
-📚 Scientific Reference
------------------------
+Scientific References
+---------------------
 
-Based on the paper: _"Visualizing Interstellar's Wormhole"_ — Oliver James, Eugénie von Tunzelmann, Paul Franklin, Kip S. Thorne (2015).
+1.  **James, O., von Tunzelmann, E., Franklin, P., & Thorne, K. S.** (2015). "Gravitational lensing by spinning black holes in astrophysics, and in the movie Interstellar". Classical and Quantum Gravity.
+2.  **Luminet, J. P.** (1979). "Image of a spherical black hole with thin accretion disk". Astronomy and Astrophysics.
+3.  **Thorne, K. S.** (2014). The Science of Interstellar. W. W. Norton & Company.
 
-Created by Egret with ❤️ for physics education and scientific visualization.
+Support
+-------
 
-For questions or technical support, please reach out at egretfx@gmail.com.
+This project is completely free and open-source. If you find it valuable:
+
+*   ⭐ Star the repository
+*   🐛 Report bugs or request features
+*   💝 [Support development](https://your-deployment-url.vercel.app/donate)
+*   📢 Share with educators and students
+
+License
+-------
+
+MIT License - see LICENSE file for details.
+
+Author
+------
+
+**Created by Egret**
+
+*   GitHub: [@berloop](https://github.com/berloop)
+*   Email: egretfx@gmail.com
+*   Project: [github.com/berloop/endurance](https://github.com/berloop/endurance)
+
+* * *
+
+Making general relativity accessible through interactive visualization

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Github, Menu, X } from 'lucide-react'
+import { CoffeeIcon, Github, Menu, X } from 'lucide-react'
 import { useState } from 'react'
 import { TooltipProvider } from '@radix-ui/react-tooltip'
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip'
@@ -15,8 +15,8 @@ const Header = () => {
   const navItems = [
     { href: '/', label: 'Wormhole' },
     { href: '/blackhole', label: 'Black Hole' },
-    { href: '/research', label: 'Paper' },
-    { href: '/docs', label: 'Docs' }
+    { href: '/docs', label: 'Docs' },
+ 
   ]
 
   return (
@@ -95,6 +95,25 @@ const Header = () => {
   </TooltipContent>
 </Tooltip>
 
+<Tooltip>
+  <TooltipTrigger asChild>
+    <Link 
+      href="/donate"
+      className="text-gray-400 hover:text-white transition-colors"
+      aria-label="Support the project"
+    >
+      <CoffeeIcon className="w-5 h-5" />
+    </Link>
+  </TooltipTrigger>
+  <TooltipContent
+    side="bottom"
+    align="center"
+    className="bg-black text-white px-3 py-1.5 rounded-md shadow-lg text-xs"
+  >
+    Buy Me a Coffee
+  </TooltipContent>
+</Tooltip>
+
           
         </nav>
 
@@ -112,32 +131,54 @@ const Header = () => {
         </button>
       </div>
 
-      {/* Mobile Navigation */}
-      {mobileMenuOpen && (
-        <motion.nav
-  initial={{ opacity: 0, y: -10 }}
-  animate={{ opacity: 1, y: 0 }}
-  exit={{ opacity: 0, y: -10 }}
-  className="md:hidden mt-6 pb-4 border-t border-neutral-800 bg-black rounded-xs"
->
-  <div className="flex flex-col space-y-4 pt-4 px-4">
-    {navItems.map((item) => (
-      <Link
-        key={item.href}
-        href={item.href}
-        onClick={() => setMobileMenuOpen(false)}
-        className={`text-sm transition-colors ${
-          pathname === item.href
-            ? 'text-white font-medium'
-            : 'text-neutral-400 hover:text-white'
-        }`}
-      >
-        {item.label}
-      </Link>
-    ))}
-  </div>
-</motion.nav>
-      )}
+    {/* Mobile Navigation */}
+{mobileMenuOpen && (
+  <motion.nav
+    initial={{ opacity: 0, y: -10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -10 }}
+    className="md:hidden mt-6 pb-4 border-t border-neutral-800 bg-black rounded-xs"
+  >
+    <div className="flex flex-col space-y-4 pt-4 px-4">
+      {navItems.map((item) => (
+        <Link
+          key={item.href}
+          href={item.href}
+          onClick={() => setMobileMenuOpen(false)}
+          className={`text-sm transition-colors ${
+            pathname === item.href
+              ? 'text-white font-medium'
+              : 'text-neutral-400 hover:text-white'
+          }`}
+        >
+          {item.label}
+        </Link>
+      ))}
+      
+
+      <div className="border-t border-neutral-800 pt-4 flex gap-6">
+        <a 
+          href="https://github.com/berloop/endurance.git"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <Github className="w-4 h-4" />
+          Source Code
+        </a>
+        <Link 
+          href="/donate"
+          className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <CoffeeIcon className="w-4 h-4" />
+          Donate
+        </Link>
+      </div>
+    </div>
+  </motion.nav>
+)}
 
      
     </motion.header>

@@ -1,10 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Host+Grotesk:ital,wght@0,300..800;1,300..800&display=swap");
 
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 
 html,
 body {
@@ -13,11 +11,15 @@ body {
   overflow: hidden;
   font-family: "Host Grotesk", sans-serif !important;
   color: white;
-  user-select: none;
+  /* user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
-  -ms-user-select: none;
+  -ms-user-select: none; */
   background-color: black;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 #magic {
@@ -149,4 +151,36 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Style the scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  background: rgb(0, 0, 0);
+}
+
+/* Style the scrollbar track */
+::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset 0 0 6px rgb(0, 0, 0);
+  border-radius: 15px;
+  background: #3c3b3b00; /* Retain the existing background color */
+}
+
+/* Style the scrollbar thumb */
+::-webkit-scrollbar-thumb {
+  border-radius: 2px;
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.5);
+  background: rgb(0, 0, 0); /* Change the color of the thumb */
+  background: #000000; /* Retain the existing background color */
+}
+
+/* Custom text selection colors */
+::selection {
+  background-color: #08b238; /* 
+  color: #fff;
+}
+
+::-moz-selection {
+  background-color: #08b238; /* */
+  color: #fff;
 }

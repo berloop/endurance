@@ -33,7 +33,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ onLoadComplete }) => {
   }, [onLoadComplete]);
 
   return (
-    <div className="fixed inset-0 bg-black z-[9999] flex flex-col items-center justify-center">
+    <div className="fixed inset-0 bg-black z-[9999] flex flex-col items-center justify-center select-none">
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -74,7 +74,7 @@ export default function BlackHolePage() {
   }
 
   return (
-    <main className="min-h-screen bg-none">
+    <main className="min-h-screen bg-none select-none">
       {/* Header */}
       <Header />
 

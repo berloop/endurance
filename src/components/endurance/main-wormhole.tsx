@@ -352,7 +352,7 @@ const enduranceRef = useRef<THREE.Group | null>(null);
 
           // Create twinkling star material
           const starMaterial = new THREE.ShaderMaterial(
-            createTwinklingStarMaterial(0.4)
+            createTwinklingStarMaterial(0.2)
           );
           const stars = new THREE.Points(starGeometry, starMaterial);
           stars.name = "stars"; // For animation updates
@@ -550,7 +550,7 @@ const enduranceRef = useRef<THREE.Group | null>(null);
 
             // Flicker attributes
             flickerData[i] = Math.random() * Math.PI * 2; // Random phase
-            flickerSpeed[i] = 0.5 + Math.random() * 2.0; // Random speed
+            flickerSpeed[i] = 4.0 + Math.random() * 24.0; // Random speed..
           }
 
           starGeometry.setAttribute(
@@ -803,7 +803,7 @@ useEffect(() => {
     <div className={`relative w-full h-full ${className}`}>
       <div ref={mountRef} className="w-full h-full" />
 
-      {/* Parameter Controls */}
+
       {/* Parameter Controls */}
 <AnimatePresence>
   {uiVisible && (

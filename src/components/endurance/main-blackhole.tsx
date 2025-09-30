@@ -105,6 +105,31 @@ vec3 temp_to_color(float temp_kelvin){
   color /= 255.0;
   return color;
 }
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
+
+float fbm(vec2 p) {
+  float value = 0.0;
+  float amplitude = 0.5;
+  for(int i = 0; i < 4; i++) {
+    value += amplitude * noise(p);
+    p *= 2.0;
+    amplitude *= 0.5;
+  }
+  return value;
+}
 
 void main() {
   float uvfov = tan(fov / 2.0 * DEG_TO_RAD);
@@ -153,25 +178,30 @@ void main() {
       break;
     }
     
-    if (accretion_disk){
-      if (oldpoint.y * point.y < 0.0){
-        float lambda = -oldpoint.y/velocity.y;
-        vec3 intersection = oldpoint + lambda*velocity;
-        float r = length(intersection);
-        if (DISK_IN <= r && r <= DISK_IN+DISK_WIDTH){
-          float phi = atan(intersection.x, intersection.z);
-          vec3 disk_velocity = vec3(-intersection.x, 0.0, intersection.z)/sqrt(2.0*(r-1.0))/(r*r);
-          phi -= time * 0.2; //this controls how fast or slow the plasma goes around the disk.
-          phi = mod(phi, PI*2.0);
-          float disk_gamma = 1.0/sqrt(1.0-dot(disk_velocity, disk_velocity));
-          float disk_doppler_factor = disk_gamma*(1.0+dot(ray_dir/distance, disk_velocity));
-          
-          if (use_disk_texture){
-  vec2 tex_coord = vec2(mod(phi,2.0*PI)/(2.0*PI), 1.0-(r-DISK_IN)/(DISK_WIDTH));
-  
+   if (accretion_disk){
+  if (oldpoint.y * point.y < 0.0){
+    float lambda = -oldpoint.y/velocity.y;
+    vec3 intersection = oldpoint + lambda*velocity;
+    float r = length(intersection);
+    
+    if (DISK_IN <= r && r <= DISK_IN+DISK_WIDTH){
+      // Calculate FBM-based height variation for visual turbulence
+      vec2 diskPos = vec2(r, atan(intersection.x, intersection.z));
+      float diskHeight = fbm(diskPos * 3.0 + time * 0.1) * 0.05; // Subtle thickness
+      
+      float phi = atan(intersection.x, intersection.z);
+      vec3 disk_velocity = vec3(-intersection.x, 0.0, intersection.z)/sqrt(2.0*(r-1.0))/(r*r);
+      phi -= time * 0.5; //Controls how fast or slow the plasma in the disk is.
+      phi = mod(phi, PI*2.0);
+      float disk_gamma = 1.0/sqrt(1.0-dot(disk_velocity, disk_velocity));
+      float disk_doppler_factor = disk_gamma*(1.0+dot(ray_dir/distance, disk_velocity));
+      
+      if (use_disk_texture){
+        vec2 tex_coord = vec2(mod(phi,2.0*PI)/(2.0*PI), 1.0-(r-DISK_IN)/(DISK_WIDTH));
+        
   // Calculate temperature gradient based on radius
   float temp_factor = 1.0 - ((r - DISK_IN) / DISK_WIDTH);
-  temp_factor = pow(temp_factor, 0.5);
+  temp_factor = pow(temp_factor, 0.8); //This controls the temperature gradient transition.
   
   // Hot inner (blue-white) to cool outer (orange-red)
   vec3 hot_color = vec3(0.7, 0.8, 1.0);
@@ -181,11 +211,16 @@ void main() {
   // Combine with user's temperature slider
   vec3 final_tint = disk_color_tint * gradient_tint;
   
-  vec4 disk_color = texture2D(disk_texture, tex_coord) * vec4(final_tint, 1.0) / (ray_doppler_factor * disk_doppler_factor);
-  float disk_alpha = clamp(dot(disk_color,disk_color)/4.5, 0.0, 1.0);
-  if (beaming)
-    disk_alpha /= pow(disk_doppler_factor, 3.0);
-  color += vec4(disk_color)*disk_alpha;
+vec4 disk_color = texture2D(disk_texture, tex_coord) * vec4(final_tint, 1.0) / (ray_doppler_factor * disk_doppler_factor);
+float disk_alpha = clamp(dot(disk_color,disk_color)/4.5, 0.0, 1.0);
+
+// Apply FBM turbulence to alpha - creates varying thickness appearance
+float turbulence = 1.0 + diskHeight * 2.0; // diskHeight varies from 0 to 0.05, so this ranges 1.0 to 1.1
+disk_alpha *= turbulence;
+
+if (beaming)
+  disk_alpha /= pow(disk_doppler_factor, 3.0);
+color += vec4(disk_color)*disk_alpha;
 } else {
   // Keep your existing else block unchanged
   float disk_temperature = 10000.0*(pow(r/DISK_IN, -3.0/4.0));
@@ -265,8 +300,8 @@ const showMillersPlanetRef = useRef(false);
   const [resolution, setResolution] = useState(1.0);
 
   const [bloom, setBloom] = useState({
-    strength: 2.0,
-    radius: 0.1,
+    strength: 2.4,
+    radius: 0.4,
     threshold: 0.0,
   });
 
@@ -440,7 +475,7 @@ cameraRef.current = camera;
     starGeometry.setAttribute("flickerData", new THREE.BufferAttribute(flickerData, 1));
     starGeometry.setAttribute("flickerSpeed", new THREE.BufferAttribute(flickerSpeed, 1));
 
-   const starMaterial = new THREE.ShaderMaterial(createTwinklingStarMaterial(0.2)); // Much brighter/bigger
+   const starMaterial = new THREE.ShaderMaterial(createTwinklingStarMaterial(0.2)); // 
     const stars = new THREE.Points(starGeometry, starMaterial);
     stars.name = "stars";
     scene.add(stars);
@@ -825,9 +860,9 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
                 <div className="space-y-2 pl-2">
                   {Object.entries({
                     // lorentz: "Lorentz Transform",
-                    doppler: "Doppler Shift",
+                    // doppler: "Doppler Shift",
                     beaming: "Relativistic Beaming",
-                    disc: "Accretion Disc",
+                    disc: "Destroy Mankind",
                     // useTexture: "Use Disc Texture",
                   }).map(([key, label]) => (
                     <div key={key} className="flex items-center space-x-2">
