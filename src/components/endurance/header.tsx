@@ -28,7 +28,7 @@ const Header = () => {
       className="relative z-50 p-6"
     >
       <div className="flex items-center justify-between">
-        {/* Logo/Brand */}
+        {/* Logo/ Dr Brand */}
       <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>

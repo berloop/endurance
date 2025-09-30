@@ -1,23 +1,37 @@
-// lib/ray-tracing-shader.ts
 
 /**
- * Wormhole Ray Tracing Shader written by Egret.
+ * Wormhole Ray Tracing Shader
+ * ---------------------------
+ * Author: Egret
  *
- * Based directly on the equations from
- * “Visualizing Interstellar’s Wormhole” 
- * by Kip Thorne, Oliver James, Eugénie von Tunzelmann & Paul Franklin.
+ * Description:
+ *   This GLSL shader performs **real-time ray tracing through a wormhole’s 
+ *   curved spacetime**, based directly on the geodesic equations and methods 
+ *   described in:
+ *     “Visualizing Interstellar’s Wormhole” by Kip Thorne et al.
  *
- * This shader performs real-time ray tracing through a wormhole’s
- * curved spacetime, reproducing gravitational lensing and the
- * Einstein ring phenomenon. It exposes advanced parameters —
- * including ring color, sharpness, radius, intensity, and multiple
- * rotation modes — giving both scientific accuracy and creative
- * flexibility. 
+ *   It simulates:
+ *     - Gravitational lensing of light around the wormhole
+ *     - The Einstein ring phenomenon with adjustable color, radius, sharpness, and intensity
+ *     - Multiple rotation modes for interactive visualization
+ *     - Dual-texture blending for realistic sky appearance inside and outside the wormhole
  *
- * A personal milestone: blending physics and rendering into an
- * interactive, cinematic visualization I’m genuinely proud of.
- */
+ * Features:
+ *   - Numerically integrates geodesic equations for accurate light propagation
+ *   - Supports customizable parameters for cinematic and interactive applications
+ *   - Balances scientific fidelity with real-time rendering performance
+ *
+ * Notes:
+ *   - This shader implements a **scientifically accurate light-path simulation** 
+ *     through the wormhole geometry.
+ *   - Textures (uGalaxyTexture, uOutsideTexture) are used for visualization; 
+ *     physics is independent of them.
+ *   - MAX_STEPS, rotation speed, and step size influence accuracy and performance.
+ * 
+ * Personal note:
+ *   - Combining science and graphics in real time — a highlight of this project, which I am proud of.
 
+ */
 
 export const rayTracingVertexShader = `
   varying vec2 vUv;

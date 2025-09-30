@@ -1,5 +1,31 @@
 // components/GeodesicShader.ts
-// GLSL shaders implementing the exact geodesic equations from the paper
+
+/*
+ * Wormhole Geodesic Shader
+ * ------------------------
+ * Author: Egret
+ *
+ * Description:
+ *   This GLSL fragment shader traces light rays through curved spacetime 
+ *   by numerically integrating the geodesic equations from the referenced paper. 
+ *   Rays are traced backward from the camera to celestial spheres, accurately 
+ *   simulating light propagation through a wormhole's geometry.
+ *
+ * Features:
+ *   - Full geodesic integration using canonical momenta
+ *   - Wormhole radius and derivative functions directly from the paper
+ *   - Ray tracing to upper and lower celestial spheres
+ *   - Optional Einstein ring visual enhancement near wormhole edges
+ *
+ * Notes:
+ *   - This shader implements a **scientifically accurate simulation** of light paths 
+ *     within the wormhole geometry as defined by the paper.
+ *   - Performance depends on MAX_STEPS and STEP_SIZE; higher values increase accuracy 
+ *     but reduce rendering speed.
+ *   - Textures (uGalaxyTexture, uSaturnTexture) are for visualization only; physics 
+ *     is independent of them.
+ */
+
 
 export const geodesicVertexShader = `
   varying vec2 vUv;

@@ -1,28 +1,36 @@
-// lib/star-shader.ts
-
 /**
- * Star Shader by Egret.
- * 
- * This shader simulates twinkling stars in a 3D scene.
- * 
+ * Star Shader
+ * -----------
+ * Author: Egret
+ *
+ * Description:
+ *   This GLSL shader simulates twinkling stars in a 3D scene.
+ *   It uses a combination of vertex and fragment shaders to create 
+ *   realistic, animated star points with depth-based sizing and soft edges.
+ *
  * Vertex Shader:
- * - Uses `flickerData` and `flickerSpeed` attributes to create a sinusoidal twinkling effect.
- * - Computes `vAlpha` to vary each star's opacity over time (0.2 to 1.0).
- * - Sets point size with distance-based scaling to simulate depth perspective.
- * 
+ *   - Computes per-star opacity with `flickerData` and `flickerSpeed`.
+ *   - Applies distance-based scaling to simulate depth perspective.
+ *   - Outputs `vAlpha` to control fragment twinkling intensity.
+ *
  * Fragment Shader:
- * - Renders each star as a circular point with soft edges.
- * - Applies `vAlpha` from the vertex shader to modulate twinkling intensity.
- * - Discards fragments outside the circular area to maintain a round star shape.
- * 
+ *   - Renders each star as a circular point with smooth edges.
+ *   - Applies `vAlpha` to modulate the twinkle effect.
+ *   - Discards fragments outside the circular area for round stars.
+ *
  * Material Helper:
- * - `createTwinklingStarMaterial(size)` returns a shader material with additive blending for glowing stars.
- * - Transparent with depthWrite disabled, so stars can overlap naturally.
- * 
+ *   - `createTwinklingStarMaterial(size)` creates a Three.js shader material.
+ *   - Uses additive blending and disables depthWrite for natural overlap and glow.
+ *
  * Usage:
- * - Ideal for creating a dynamic, realistic starfield in Three.js.
- * - Update `uTime` uniform each frame to animate the twinkling.
+ *   - Ideal for dynamic, realistic starfields in Three.js or WebGL scenes.
+ *   - Update `uTime` each frame to animate twinkling.
+ *
+ * Personal note:
+ *   - We used to look up at the sky and wonder at our place in the stars. 
+ *     Now we just look down, and worry about our place in the dirt. - Cooper.
  */
+
 
 
 import * as THREE from 'three';

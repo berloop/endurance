@@ -1,10 +1,34 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-// NOTE: Attempted to add particle trails in geometry mode around the wormhole.
-// This caused severe performance issues and site instability, so the shader was disabled by me.
+import * as THREE from "three";
 
-import * as THREE from 'three';
+/**
+ * Particle Trail System Around a Wormhole Throat. (Einstein–Rosen bridge) - For Geometry Render Tab.
+ * ---------------------
+ * Author: Egret
+ *
+ * Description:
+ *   This class simulates particle trails around a wormhole in 3D space using Three.js.
+ *   Each particle is influenced by simplified gravitational and orbital forces, leaving
+ *   a trailing path to visualize motion near the wormhole throat.
+ *
+ * Features:
+ *   - Particle initialization around the wormhole throat with random offsets.
+ *   - Force calculation simulating radial and axial attraction, plus orbital motion.
+ *   - Trails rendered as line segments with fading opacity.
+ *   - Automatic reset of particles that move too far or age out.
+ *   - Supports updating wormhole parameters in real time.
+ *   - Efficient cleanup with dispose().
+ *
+ * NOTE:
+ *   Attempted to add particle trails in geometry mode for higher fidelity visualization,
+ *   but this caused severe performance issues and instability, so the shader was disabled.
+ *
+ * Personal note:
+ *   - Experimenting with particle dynamics in curved spacetime helped me understand
+ *     the balance between visual fidelity and real-time performance in 3D simulations.
+ */
 
 export class ParticleTrailSystem {
   private particles: THREE.Points[] = [];
@@ -18,7 +42,10 @@ export class ParticleTrailSystem {
   private scene: THREE.Scene;
   private wormholeParams: { rho: number; a: number; M: number };
 
-  constructor(scene: THREE.Scene, wormholeParams: { rho: number; a: number; M: number }) {
+  constructor(
+    scene: THREE.Scene,
+    wormholeParams: { rho: number; a: number; M: number }
+  ) {
     this.scene = scene;
     this.wormholeParams = wormholeParams;
     this.initializeParticles();
@@ -26,13 +53,13 @@ export class ParticleTrailSystem {
 
   private initializeParticles() {
     const particleCount = 50;
-    
+
     for (let i = 0; i < particleCount; i++) {
       // Initialize particles around the wormhole throat
       const angle = (i / particleCount) * Math.PI * 2;
       const radius = this.wormholeParams.rho + Math.random() * 2;
       const height = (Math.random() - 0.5) * this.wormholeParams.a * 4;
-      
+
       const particle = {
         position: new THREE.Vector3(
           Math.cos(angle) * radius,
@@ -45,9 +72,9 @@ export class ParticleTrailSystem {
           (Math.random() - 0.5) * 0.02
         ),
         trail: [] as THREE.Vector3[],
-        age: 0
+        age: 0,
       };
-      
+
       this.particleData.push(particle);
     }
   }
@@ -56,23 +83,23 @@ export class ParticleTrailSystem {
     const { rho, a, M } = this.wormholeParams;
     const r = Math.sqrt(position.x * position.x + position.y * position.y);
     const l = position.z;
-    
+
     // Simple gravitational attraction toward throat
     const force = new THREE.Vector3();
-    
+
     // Radial force toward throat radius
     const radialForce = (rho - r) * 0.001;
     force.x = (position.x / r) * radialForce;
     force.y = (position.y / r) * radialForce;
-    
+
     // Axial force toward throat center
     force.z = -l * 0.0005;
-    
+
     // Add some orbital motion
     const orbitalForce = 0.0002;
     force.x += -position.y * orbitalForce;
     force.y += position.x * orbitalForce;
-    
+
     return force;
   }
 
@@ -81,29 +108,31 @@ export class ParticleTrailSystem {
       // Apply wormhole forces
       const force = this.calculateWormholeForce(particle.position);
       particle.velocity.add(force);
-      
+
       // Apply damping
       particle.velocity.multiplyScalar(0.98);
-      
+
       // Update position
-      particle.position.add(particle.velocity.clone().multiplyScalar(deltaTime));
-      
+      particle.position.add(
+        particle.velocity.clone().multiplyScalar(deltaTime)
+      );
+
       // Add to trail
       particle.trail.push(particle.position.clone());
-      
+
       // Limit trail length
       if (particle.trail.length > 30) {
         particle.trail.shift();
       }
-      
+
       // Reset particle if it gets too far
       const distance = particle.position.length();
       if (distance > 20 || particle.age > 1000) {
         this.resetParticle(particle);
       }
-      
+
       particle.age++;
-      
+
       // Update trail visualization
       this.updateTrailVisualization(particle, index);
     });
@@ -113,7 +142,7 @@ export class ParticleTrailSystem {
     const angle = Math.random() * Math.PI * 2;
     const radius = this.wormholeParams.rho + Math.random() * 2;
     const height = (Math.random() - 0.5) * this.wormholeParams.a * 4;
-    
+
     particle.position.set(
       Math.cos(angle) * radius,
       Math.sin(angle) * radius,
@@ -133,17 +162,19 @@ export class ParticleTrailSystem {
     if (this.trails[index]) {
       this.scene.remove(this.trails[index]);
     }
-    
+
     // Create new trail if we have enough points
     if (particle.trail.length > 2) {
-      const trailGeometry = new THREE.BufferGeometry().setFromPoints(particle.trail);
+      const trailGeometry = new THREE.BufferGeometry().setFromPoints(
+        particle.trail
+      );
       const trailMaterial = new THREE.LineBasicMaterial({
-        color: 0x10b981, 
+        color: 0x10b981,
         transparent: true,
         opacity: 0.6,
-        linewidth: 2
+        linewidth: 2,
       });
-      
+
       const trail = new THREE.Line(trailGeometry, trailMaterial);
       this.trails[index] = trail;
       this.scene.add(trail);
@@ -155,8 +186,8 @@ export class ParticleTrailSystem {
   }
 
   public dispose() {
-    // Clean up trails
-    this.trails.forEach(trail => {
+    // Clean up trails..who the hell is calling this house on a tuesday night??..
+    this.trails.forEach((trail) => {
       if (trail) {
         this.scene.remove(trail);
       }

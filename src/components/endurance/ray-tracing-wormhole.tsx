@@ -1,11 +1,40 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useRef, useEffect, useState, useCallback } from 'react';
-import * as THREE from 'three';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
+/**
+ * Ray-Traced Wormhole
+ * ---------------------
+ * Author: Egret
+ *
+ * Description:
+ *   This component performs a first-pass ray-tracing simulation of light passing
+ *   through an Einstein–Rosen bridge (wormhole) in Three.js. It calculates geodesic
+ *   paths and samples celestial textures to produce a visual representation of lensing
+ *   and curved spacetime effects.
+ *
+ * Features:
+ *   - Ray tracing through wormhole spacetime with simplified geodesic integration.
+ *   - Sampling of galaxy and planetary textures for visual celestial spheres.
+ *   - Subtle atmospheric glow added near the wormhole throat.
+ *   - Adjustable parameters: throat radius (ρ), interior half-length (a), and lensing factor (M).
+ *   - Real-time updates of camera position for dynamic viewing.
+ *
+ * NOTE:
+ *   This component was an initial implementation and is not used in the final scene
+ *   due to performance constraints and probably skill issue, but it served as a foundational prototype for physics-based visualization.
+ *
+ * Personal note:
+ *   - Developing this first-pass ray tracing taught me how to balance computational accuracy
+ *     with interactive performance in real-time 3D wormhole simulations.
+ */
+
+import React, { useRef, useEffect, useState, useCallback } from "react";
+import * as THREE from "three";
 
 interface WormholeParameters {
-  rho: number;    // Wormhole radius (ρ)
-  a: number;      // Half-length of cylindrical interior
-  M: number;      // Lensing parameter
+  rho: number; // Wormhole radius (ρ)
+  a: number; // Half-length of cylindrical interior
+  M: number; // Lensing parameter
 }
 
 interface WormholeViewerProps {
@@ -168,24 +197,26 @@ const fragmentShader = `
   }
 `;
 
-const RayTracingWormhole: React.FC<WormholeViewerProps> = ({ className = '' }) => {
+const RayTracingWormhole: React.FC<WormholeViewerProps> = ({
+  className = "",
+}) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene>();
   const rendererRef = useRef<THREE.WebGLRenderer>();
   const cameraRef = useRef<THREE.PerspectiveCamera>();
   const animationIdRef = useRef<number>();
   const wormholeMaterialRef = useRef<THREE.ShaderMaterial>();
-  
+
   const [parameters, setParameters] = useState<WormholeParameters>({
     rho: 1.0,
     a: 0.005,
-    M: 0.05
+    M: 0.05,
   });
 
-  const [cameraPosition, setCameraPosition] = useState({ 
-    distance: 6.25, 
-    theta: Math.PI / 2, 
-    phi: 0 
+  const [cameraPosition, setCameraPosition] = useState({
+    distance: 6.25,
+    theta: Math.PI / 2,
+    phi: 0,
   });
 
   // Load textures
@@ -196,60 +227,60 @@ const RayTracingWormhole: React.FC<WormholeViewerProps> = ({ className = '' }) =
 
   useEffect(() => {
     const loader = new THREE.TextureLoader();
-    
+
     // Create placeholder textures
     const createGalaxyTexture = () => {
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement("canvas");
       canvas.width = 512;
       canvas.height = 256;
-      const ctx = canvas.getContext('2d')!;
-      
+      const ctx = canvas.getContext("2d")!;
+
       // Create galaxy-like pattern
       const gradient = ctx.createRadialGradient(256, 128, 0, 256, 128, 200);
-      gradient.addColorStop(0, '#FFE4B5');
-      gradient.addColorStop(0.3, '#DDA0DD');
-      gradient.addColorStop(0.6, '#4169E1');
-      gradient.addColorStop(1, '#000000');
-      
+      gradient.addColorStop(0, "#FFE4B5");
+      gradient.addColorStop(0.3, "#DDA0DD");
+      gradient.addColorStop(0.6, "#4169E1");
+      gradient.addColorStop(1, "#000000");
+
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 512, 256);
-      
+
       // Add stars
-      ctx.fillStyle = 'white';
+      ctx.fillStyle = "white";
       for (let i = 0; i < 1000; i++) {
         const x = Math.random() * 512;
         const y = Math.random() * 256;
         const size = Math.random() * 2;
         ctx.fillRect(x, y, size, size);
       }
-      
+
       return new THREE.CanvasTexture(canvas);
     };
 
     const createSaturnTexture = () => {
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement("canvas");
       canvas.width = 512;
       canvas.height = 256;
-      const ctx = canvas.getContext('2d')!;
-      
+      const ctx = canvas.getContext("2d")!;
+
       // Create starfield
-      ctx.fillStyle = '#000011';
+      ctx.fillStyle = "#000011";
       ctx.fillRect(0, 0, 512, 256);
-      
-      ctx.fillStyle = 'white';
+
+      ctx.fillStyle = "white";
       for (let i = 0; i < 500; i++) {
         const x = Math.random() * 512;
         const y = Math.random() * 256;
         const size = Math.random() * 1.5;
         ctx.fillRect(x, y, size, size);
       }
-      
+
       return new THREE.CanvasTexture(canvas);
     };
 
     setTextures({
       galaxy: createGalaxyTexture(),
-      saturn: createSaturnTexture()
+      saturn: createSaturnTexture(),
     });
   }, []);
 
@@ -269,14 +300,14 @@ const RayTracingWormhole: React.FC<WormholeViewerProps> = ({ className = '' }) =
     if (!sceneRef.current || !textures.galaxy || !textures.saturn) return;
 
     // Remove existing wormhole
-    const existingWormhole = sceneRef.current.getObjectByName('wormhole');
+    const existingWormhole = sceneRef.current.getObjectByName("wormhole");
     if (existingWormhole) {
       sceneRef.current.remove(existingWormhole);
     }
 
     // Create large sphere for ray tracing
     const geometry = new THREE.SphereGeometry(50, 64, 64);
-    
+
     const material = new THREE.ShaderMaterial({
       vertexShader,
       fragmentShader,
@@ -287,15 +318,15 @@ const RayTracingWormhole: React.FC<WormholeViewerProps> = ({ className = '' }) =
         uCameraPosition: { value: new THREE.Vector3() },
         uGalaxyTexture: { value: textures.galaxy },
         uSaturnTexture: { value: textures.saturn },
-        uTime: { value: 0 }
+        uTime: { value: 0 },
       },
-      side: THREE.BackSide
+      side: THREE.BackSide,
     });
 
     wormholeMaterialRef.current = material;
 
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.name = 'wormhole';
+    mesh.name = "wormhole";
     sceneRef.current.add(mesh);
   }, [parameters, textures]);
 
@@ -315,7 +346,10 @@ const RayTracingWormhole: React.FC<WormholeViewerProps> = ({ className = '' }) =
     cameraRef.current = camera;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(mountRef.current.clientWidth, mountRef.current.clientHeight);
+    renderer.setSize(
+      mountRef.current.clientWidth,
+      mountRef.current.clientHeight
+    );
     renderer.setPixelRatio(window.devicePixelRatio);
     mountRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
@@ -325,31 +359,33 @@ const RayTracingWormhole: React.FC<WormholeViewerProps> = ({ className = '' }) =
 
     const animate = () => {
       animationIdRef.current = requestAnimationFrame(animate);
-      
+
       if (wormholeMaterialRef.current && cameraRef.current) {
         wormholeMaterialRef.current.uniforms.uTime.value += 0.01;
-        wormholeMaterialRef.current.uniforms.uCameraPosition.value.copy(cameraRef.current.position);
+        wormholeMaterialRef.current.uniforms.uCameraPosition.value.copy(
+          cameraRef.current.position
+        );
       }
-      
+
       renderer.render(scene, camera);
     };
     animate();
 
     const handleResize = () => {
       if (!mountRef.current || !camera || !renderer) return;
-      
+
       const width = mountRef.current.clientWidth;
       const height = mountRef.current.clientHeight;
-      
+
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
     };
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener("resize", handleResize);
       if (animationIdRef.current) {
         cancelAnimationFrame(animationIdRef.current);
       }
@@ -376,47 +412,68 @@ const RayTracingWormhole: React.FC<WormholeViewerProps> = ({ className = '' }) =
   return (
     <div className={`relative w-full h-full ${className}`}>
       <div ref={mountRef} className="w-full h-full" />
-      
+
       {/* Parameter Controls */}
       <div className="absolute top-4 left-4 bg-black/90 backdrop-blur-sm rounded-lg p-4 text-white max-w-xs">
         <h3 className="text-lg font-semibold mb-3">Wormhole Parameters</h3>
-        
+
         <div className="space-y-4">
           <div>
-            <label className="block text-sm mb-2">Radius (ρ): {parameters.rho.toFixed(3)}</label>
+            <label className="block text-sm mb-2">
+              Radius (ρ): {parameters.rho.toFixed(3)}
+            </label>
             <input
               type="range"
               min="0.5"
               max="3.0"
               step="0.1"
               value={parameters.rho}
-              onChange={(e) => setParameters(prev => ({ ...prev, rho: parseFloat(e.target.value) }))}
+              onChange={(e) =>
+                setParameters((prev) => ({
+                  ...prev,
+                  rho: parseFloat(e.target.value),
+                }))
+              }
               className="w-full accent-blue-500"
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm mb-2">Length (2a): {(2 * parameters.a).toFixed(4)}</label>
+            <label className="block text-sm mb-2">
+              Length (2a): {(2 * parameters.a).toFixed(4)}
+            </label>
             <input
               type="range"
               min="0.001"
               max="0.1"
               step="0.001"
               value={parameters.a}
-              onChange={(e) => setParameters(prev => ({ ...prev, a: parseFloat(e.target.value) }))}
+              onChange={(e) =>
+                setParameters((prev) => ({
+                  ...prev,
+                  a: parseFloat(e.target.value),
+                }))
+              }
               className="w-full accent-blue-500"
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm mb-2">Lensing (M): {parameters.M.toFixed(3)}</label>
+            <label className="block text-sm mb-2">
+              Lensing (M): {parameters.M.toFixed(3)}
+            </label>
             <input
               type="range"
               min="0.01"
               max="1.0"
               step="0.01"
               value={parameters.M}
-              onChange={(e) => setParameters(prev => ({ ...prev, M: parseFloat(e.target.value) }))}
+              onChange={(e) =>
+                setParameters((prev) => ({
+                  ...prev,
+                  M: parseFloat(e.target.value),
+                }))
+              }
               className="w-full accent-blue-500"
             />
           </div>
@@ -426,43 +483,64 @@ const RayTracingWormhole: React.FC<WormholeViewerProps> = ({ className = '' }) =
       {/* Camera Controls */}
       <div className="absolute bottom-4 left-4 bg-black/90 backdrop-blur-sm rounded-lg p-4 text-white max-w-xs">
         <h3 className="text-lg font-semibold mb-3">Camera Position</h3>
-        
+
         <div className="space-y-4">
           <div>
-            <label className="block text-sm mb-2">Distance: {cameraPosition.distance.toFixed(2)}</label>
+            <label className="block text-sm mb-2">
+              Distance: {cameraPosition.distance.toFixed(2)}
+            </label>
             <input
               type="range"
               min="2"
               max="20"
               step="0.1"
               value={cameraPosition.distance}
-              onChange={(e) => setCameraPosition(prev => ({ ...prev, distance: parseFloat(e.target.value) }))}
+              onChange={(e) =>
+                setCameraPosition((prev) => ({
+                  ...prev,
+                  distance: parseFloat(e.target.value),
+                }))
+              }
               className="w-full accent-blue-500"
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm mb-2">Theta: {(cameraPosition.theta * 180 / Math.PI).toFixed(1)}°</label>
+            <label className="block text-sm mb-2">
+              Theta: {((cameraPosition.theta * 180) / Math.PI).toFixed(1)}°
+            </label>
             <input
               type="range"
               min="0"
               max={Math.PI}
               step="0.01"
               value={cameraPosition.theta}
-              onChange={(e) => setCameraPosition(prev => ({ ...prev, theta: parseFloat(e.target.value) }))}
+              onChange={(e) =>
+                setCameraPosition((prev) => ({
+                  ...prev,
+                  theta: parseFloat(e.target.value),
+                }))
+              }
               className="w-full accent-blue-500"
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm mb-2">Phi: {(cameraPosition.phi * 180 / Math.PI).toFixed(1)}°</label>
+            <label className="block text-sm mb-2">
+              Phi: {((cameraPosition.phi * 180) / Math.PI).toFixed(1)}°
+            </label>
             <input
               type="range"
               min="0"
               max={Math.PI * 2}
               step="0.01"
               value={cameraPosition.phi}
-              onChange={(e) => setCameraPosition(prev => ({ ...prev, phi: parseFloat(e.target.value) }))}
+              onChange={(e) =>
+                setCameraPosition((prev) => ({
+                  ...prev,
+                  phi: parseFloat(e.target.value),
+                }))
+              }
               className="w-full accent-blue-500"
             />
           </div>

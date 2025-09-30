@@ -1,5 +1,35 @@
-// lib/wormhole-annotations.ts
 import * as THREE from 'three';
+
+
+
+/**
+ * Wormhole Annotations
+ * -------------------
+ * Author: Egret
+ *
+ * Description:
+ *   This utility class provides visual annotations for a 3D wormhole
+ *   scene using Three.js. It helps visualize the wormhole’s structure,
+ *   including its throat radius (ρ), half-length (a), and radial coordinates.
+ *
+ * Features:
+ *   - Radius and length indicators with colored lines and arrowheads.
+ *   - Coordinate arrows (l and r) with labeled axes.
+ *   - Parameter display panel showing current wormhole values (ρ, a, M).
+ *   - Simple text markers for visualization; easily extendable to full TextGeometry.
+ *   - Supports adding, updating, showing/hiding, and disposing of annotations.
+ *
+ * Usage:
+ *   - Initialize with a Three.js scene.
+ *   - Call `createAnnotations({rho, a, M})` to display wormhole dimensions.
+ *   - Use `updateAnnotations()` to refresh values in real time.
+ *   - Toggle visibility with `setVisible()` and clean up with `dispose()`.
+ *
+ * Personal note:
+ *   - Something isn't working as it should be in here. ///TO-DO
+ */
+
+
 
 export class WormholeAnnotations {
   private scene: THREE.Scene;

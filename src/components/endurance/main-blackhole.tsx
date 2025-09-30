@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// components/blackhole/main-blackhole.tsx
 "use client";
 
 import { SliderRange, SliderThumb, SliderTrack } from "@radix-ui/react-slider";
@@ -16,6 +15,32 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { createTwinklingStarMaterial } from "@/lib/star-shader";
 import MusicControls from "./music-controls";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+
+/*
+ * Black Hole & Accretion Disk Shader
+ * ----------------------------------
+ * Author: Egret
+ *
+ * Description:
+ *   This GLSL fragment shader provides a visually realistic simulation of a 
+ *   black hole with an optional accretion disk, inspired by relativistic physics. 
+ *   It includes approximate effects such as Doppler shift, relativistic beaming, 
+ *   and Lorentz transformations for moving cameras. The accretion disk can be 
+ *   rendered with procedural turbulence (FBM) or a texture, with a temperature-
+ *   to-color gradient for visual realism.
+ *
+ * Important Notes:
+ *   - This shader is a **visual approximation**, not a full general-relativistic 
+ *     or magnetohydrodynamic simulation. True scientific accuracy requires solving 
+ *     the Schwarzschild/Kerr geodesic equations and plasma physics equations.
+ *   - Ray marching parameters (NSTEPS, STEP) affect precision and performance.
+ *   - Transparent areas use alpha discard for efficiency.
+ *
+ * Usage:
+ *   Suitable for visualization, educational demonstrations, and artistic 
+ *   simulations inspired by black hole physics.
+ */
+
 
 
 const fragmentShader = `
@@ -688,7 +713,7 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
-            className="absolute top-4 left-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white max-w-xs max-h-[90vh] overflow-y-auto scrollbar-none"
+            className=" absolute top-4 left-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white max-w-xs max-h-[90vh] overflow-y-auto scrollbar-none"
           >
             <h3 className="text-lg font-semibold mb-3">Schwarzschild Black Hole</h3>
 
@@ -844,7 +869,7 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
                     </Slider>
                 </div>
 
-                <div className="flex items-center space-x-2">
+                <div className="hidden md:flex items-center space-x-2">
                   <Checkbox id="orbit" checked={orbit} onCheckedChange={(c) => { playUISound(); setOrbit(c as boolean); }} />
                   <label htmlFor="orbit" className="text-sm cursor-pointer">Auto-Orbit</label>
                 </div>
@@ -900,7 +925,7 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            className="absolute top-4 right-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white"
+            className="hidden md:block absolute top-4 right-4 bg-neutral-950/20 backdrop-blur-lg rounded-sm p-4 text-white"
           >
             <div className="text-xs">
               <div className="flex items-center text-green-500 gap-2">
@@ -931,7 +956,7 @@ useEffect(() => { orbitRef.current = orbit; }, [orbit]);
     </motion.div>
   )}
 </AnimatePresence>
-      <div className="absolute bottom-4 left-4 text-white text-xs opacity-50">
+      <div className="absolute bottom-4 left-4 text-white text-xs opacity-50 hidden md:block">
         Press &apos;H&apos; to {uiVisible ? "hide" : "show"} UI | Press &apos;F&apos; for fullscreen
       </div>
 
