@@ -152,7 +152,7 @@ This project is completely free and open-source. If you find it valuable:
 
 *   ⭐ Star the repository
 *   🐛 Report bugs or request features
-*   💝 [Support development](https://lazarus.space/donate)
+*   💝 [Support development](https://www.lazarus-12.space/donate)
 *   📢 Share with educators and students
 
 License
