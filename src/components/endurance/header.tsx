@@ -14,8 +14,10 @@ const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const navItems = [
+    
     { href: '/', label: 'Wormhole' },
     { href: '/blackhole', label: 'Black Hole' },
+    { href: '/earth', label: 'Earth' }, 
     { href: '/docs', label: 'Docs' },
  
   ]
