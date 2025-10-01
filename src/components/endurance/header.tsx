@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client'
 
 import Link from 'next/link'
@@ -118,7 +119,7 @@ const Header = () => {
     Buy Me a Coffee
   </TooltipContent>
 </Tooltip>
-   <a 
+   {/* <a 
     href="https://www.producthunt.com/products/project-l-a-z-a-r-u-s?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-project-l-a-z-a-r-u-s" 
     target="_blank"
     rel="noopener noreferrer"
@@ -132,7 +133,7 @@ const Header = () => {
       className="h-8 w-auto"
     />
   </a>
-  
+   */}
           
         </nav>
 
@@ -194,7 +195,7 @@ const Header = () => {
           <CoffeeIcon className="w-4 h-4" />
           Donate
         </Link>
-           <a 
+           {/* <a 
     href="https://www.producthunt.com/products/project-l-a-z-a-r-u-s?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-project-l-a-z-a-r-u-s" 
     target="_blank"
     rel="noopener noreferrer"
@@ -207,7 +208,7 @@ const Header = () => {
       height="43"
       className="h-8 w-auto"
     />
-  </a>
+  </a> */}
   
       </div>
     </div>
